@@ -11,7 +11,4 @@ deployment:
         --exclude ".github/" \
         --exclude ".DS_Store" \
         --exclude ".cpanel.yml" \
-        --exclude ".well-known/" \
-        --exclude "cgi-bin/" \
-        --exclude ".htaccess" \
         ./ "$DEPLOYPATH/"
