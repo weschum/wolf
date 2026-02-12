@@ -12,6 +12,7 @@ deployment:
 
     # --- Deploy core site files/folders ---
     - /bin/cp -a index.html "$DEPLOYPATH/"
+    - /bin/cp -a styles.css "$DEPLOYPATH/"
     - /bin/cp -a app.js "$DEPLOYPATH/"
     - /bin/cp -a assets "$DEPLOYPATH/"
     - /bin/cp -a manifest.webmanifest "$DEPLOYPATH/"
