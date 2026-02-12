@@ -1,22 +1,17 @@
 deployment:
   tasks:
-    # --- Configure your document root here ---
+    # Deploy Wolf app to chumworx.com/wolf
     - export DEPLOYPATH=/home/chumuvep/public_html/wolf
-
-    # --- Safety: ensure deploy path exists ---
     - /bin/mkdir -p "$DEPLOYPATH"
 
-    # --- Safety: remove only DGST site payload, but preserve host-managed folders/files ---
-    # Keeps: .well-known, cgi-bin, .htaccess
-    - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name 'cgi-bin' ! -name '.htaccess' -exec /bin/rm -rf {} +
-
-    # --- Deploy core site files/folders ---
-    - /bin/cp -a index.html "$DEPLOYPATH/"
-    - /bin/cp -a styles.css "$DEPLOYPATH/"
-    - /bin/cp -a app.js "$DEPLOYPATH/"
-    - /bin/cp -a assets "$DEPLOYPATH/"
-    - /bin/cp -a manifest.webmanifest "$DEPLOYPATH/"
-    - /bin/cp -a service-worker.js "$DEPLOYPATH/"
-
-    # --- Cleanup: ensure server doesn't retain local-only junk if it ever appears ---
-    - /bin/rm -rf "$DEPLOYPATH/.pdga-cache" "$DEPLOYPATH/.git" "$DEPLOYPATH/.github" "$DEPLOYPATH/.DS_Store"
+    # Mirror repo -> deploy folder (reliable, no need to maintain a file copy list)
+    # Preserves host-managed folders/files if they exist: .well-known, cgi-bin, .htaccess
+    - /usr/bin/rsync -a --delete \
+        --exclude ".git/" \
+        --exclude ".github/" \
+        --exclude ".DS_Store" \
+        --exclude ".cpanel.yml" \
+        --exclude ".well-known/" \
+        --exclude "cgi-bin/" \
+        --exclude ".htaccess" \
+        ./ "$DEPLOYPATH/"
