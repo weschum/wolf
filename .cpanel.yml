@@ -1,14 +1,14 @@
 deployment:
   tasks:
-    # Deploy Wolf app to chumworx.com/wolf
     - export DEPLOYPATH=/home/chumuvep/public_html/wolf
     - /bin/mkdir -p "$DEPLOYPATH"
 
-    # Mirror repo -> deploy folder (reliable, no need to maintain a file copy list)
-    # Preserves host-managed folders/files if they exist: .well-known, cgi-bin, .htaccess
-    - /usr/bin/rsync -a --delete \
-        --exclude ".git/" \
-        --exclude ".github/" \
-        --exclude ".DS_Store" \
-        --exclude ".cpanel.yml" \
-        ./ "$DEPLOYPATH/"
+    # Clean deploy folder but preserve common host-managed items if present
+    - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name 'cgi-bin' ! -name '.htaccess' -exec /bin/rm -rf {} +
+
+    # IMPORTANT: Checkout the repo HEAD into the deploy path.
+    # This works even if cPanel uses a bare repo (where ./ contains objects/refs/HEAD).
+    - /usr/bin/git --work-tree="$DEPLOYPATH" checkout -f HEAD
+
+    # Remove anything that should never be web-served (extra safety)
+    - /bin/rm -rf "$DEPLOYPATH/.git" "$DEPLOYPATH/.github" "$DEPLOYPATH/.cpanel.yml" "$DEPLOYPATH/.DS_Store"
