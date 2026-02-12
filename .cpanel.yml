@@ -11,4 +11,11 @@ deployment:
     - /usr/bin/git --work-tree="$DEPLOYPATH" checkout -f HEAD
 
     # Remove anything that should never be web-served (extra safety)
-    - /bin/rm -rf "$DEPLOYPATH/.git" "$DEPLOYPATH/.github" "$DEPLOYPATH/.cpanel.yml" "$DEPLOYPATH/.DS_Store"
+    - /bin/rm -rf \
+      "$DEPLOYPATH/.git" \
+      "$DEPLOYPATH/.github" \
+      "$DEPLOYPATH/.cpanel.yml" \
+      "$DEPLOYPATH/.DS_Store" \
+      "$DEPLOYPATH/.gitattributes" \
+      "$DEPLOYPATH/README.md" \
+      "$DEPLOYPATH/LICENSE"
