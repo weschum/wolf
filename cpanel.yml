@@ -1,7 +1,7 @@
 deployment:
   tasks:
     # --- Configure your document root here ---
-    - export DEPLOYPATH=/home/chumuvep/wolf
+    - export DEPLOYPATH=/home/chumuvep/public_html/wolf
 
     # --- Safety: ensure deploy path exists ---
     - /bin/mkdir -p "$DEPLOYPATH"
