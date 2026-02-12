@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Wolf Disc Golf Scoring</title>
+
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="stylesheet" href="./assets/styles.css" />
+  <meta name="theme-color" content="#0f172a" />
+</head>
+
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand__title">🐺 Wolf</div>
+      <div class="brand__subtitle">Disc Golf Scoring</div>
+    </div>
+    <div class="topbar__actions">
+      <button id="btnRules" class="btn btn--ghost" type="button">Rules</button>
+      <button id="btnReset" class="btn btn--danger" type="button" title="Clear saved game">Reset</button>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- LOAD -->
+    <section id="screenLoad" class="screen">
+      <div class="card">
+        <h1>Start</h1>
+        <p class="muted">Works offline after loading. Resume is available if you leave and come back.</p>
+
+        <div class="stack">
+          <button id="btnNewGame" class="btn btn--primary" type="button">Start New Game</button>
+          <button id="btnResume" class="btn" type="button" disabled>Resume Game</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETUP -->
+    <section id="screenSetup" class="screen hidden">
+      <div class="card">
+        <h1>Game Setup</h1>
+
+        <div class="formGrid">
+          <div class="field">
+            <label for="playerCount">Number of players</label>
+            <select id="playerCount">
+              <option value="4">4</option>
+              <option value="5">5</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="holeCount">Number of holes</label>
+            <select id="holeCount"></select>
+            <div class="hint">Suggested values are multiples of the player count.</div>
+          </div>
+        </div>
+
+        <div class="card card--inset">
+          <div class="row row--between row--center">
+            <h2>Players</h2>
+            <button id="btnRandomize" class="btn btn--ghost" type="button">Randomize Order</button>
+          </div>
+
+          <div id="playerInputs" class="stack"></div>
+          <div class="hint">Order matters. Wolf is the last player each hole; order rotates every hole.</div>
+        </div>
+
+        <div class="card card--inset">
+          <h2>Options</h2>
+          <div class="stack">
+            <label class="check">
+              <input id="optPushTies" type="checkbox" />
+              <span>Push points on tied holes (carry multiplier forward)</span>
+            </label>
+
+            <label class="check">
+              <input id="optBlindWolf" type="checkbox" />
+              <span>Allow “Blind Wolf” (double points)</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row row--between">
+          <button id="btnBackToLoad" class="btn" type="button">Back</button>
+          <button id="btnStartGame" class="btn btn--primary" type="button">Start Game</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME -->
+    <section id="screenGame" class="screen hidden">
+      <div class="card">
+        <div class="row row--between row--center">
+          <button id="btnPrevHole" class="btn btn--ghost" type="button">←</button>
+          <div class="center">
+            <div id="holeTitle" class="h1like">Hole 1</div>
+            <div id="holeMeta" class="muted small"></div>
+          </div>
+          <button id="btnNextHole" class="btn btn--ghost" type="button">→</button>
+        </div>
+
+        <div class="card card--inset">
+          <h2>Order (Wolf is last)</h2>
+          <ol id="orderList" class="orderList"></ol>
+        </div>
+
+        <div id="blindWolfBlock" class="card card--inset hidden">
+          <h2>Blind Wolf</h2>
+          <label class="check">
+            <input id="blindWolfToggle" type="checkbox" />
+            <span>Blind Wolf declared (double points)</span>
+          </label>
+          <div class="hint">If enabled, multiplier doubles for this hole.</div>
+        </div>
+
+        <div class="card card--inset">
+          <h2>Choose Wolf Partner</h2>
+          <div id="partnerButtons" class="pillGrid"></div>
+          <div class="row row--between row--center">
+            <label class="check">
+              <input id="loneWolfToggle" type="checkbox" />
+              <span>Lone Wolf</span>
+            </label>
+            <div class="hint">Lone Wolf is 1 vs everyone.</div>
+          </div>
+        </div>
+
+        <div class="card card--inset">
+          <h2>Result</h2>
+          <div class="stack">
+            <label class="radio">
+              <input type="radio" name="result" value="WOLF" />
+              <span>Wolf Team wins</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="result" value="OTHER" />
+              <span>Other Team wins</span>
+            </label>
+            <label class="radio">
+              <input type="radio" name="result" value="TIE" />
+              <span>Tie</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="row row--between">
+          <button id="btnViewScores" class="btn" type="button">Scoreboard</button>
+          <button id="btnSaveHole" class="btn btn--primary" type="button">Save Hole</button>
+        </div>
+
+        <div id="saveStatus" class="muted small" aria-live="polite"></div>
+      </div>
+    </section>
+
+    <!-- SCOREBOARD -->
+    <section id="screenScoreboard" class="screen hidden">
+      <div class="card">
+        <div class="row row--between row--center">
+          <h1>Scoreboard</h1>
+          <button id="btnBackToGame" class="btn" type="button">Back</button>
+        </div>
+
+        <div id="scoreTableWrap" class="card card--inset"></div>
+
+        <div class="card card--inset">
+          <h2>Holes</h2>
+          <div id="holesList" class="holesList"></div>
+        </div>
+
+        <div class="row row--between">
+          <button id="btnFinishGame" class="btn btn--primary" type="button">Finish Game</button>
+          <button id="btnNewFromScoreboard" class="btn btn--danger" type="button">New Game</button>
+        </div>
+
+        <div id="finishStatus" class="muted small"></div>
+      </div>
+    </section>
+
+    <!-- RULES MODAL -->
+    <dialog id="rulesDialog" class="modal">
+      <div class="modal__inner">
+        <div class="row row--between row--center">
+          <h2>Rules (Wolf Disc Golf)</h2>
+          <button id="btnCloseRules" class="btn btn--ghost" type="button">Close</button>
+        </div>
+
+        <div class="rules">
+          <ul>
+            <li><b>Players:</b> 4 or 5</li>
+            <li><b>Order:</b> fixed order rotates each hole; last is the <b>Wolf</b></li>
+            <li><b>Partner:</b> Wolf may pick a partner (or go Lone Wolf)</li>
+            <li><b>Win:</b> lowest team strokes wins the hole</li>
+            <li><b>Points:</b> winners take 1 point from each loser (split evenly on the winning team)</li>
+            <li><b>Lone Wolf:</b> wins/loses 1 point per opponent</li>
+            <li><b>Ties:</b> no points; optional push multiplier carries to next hole</li>
+          </ul>
+        </div>
+      </div>
+    </dialog>
+
+  </main>
+
+  <script defer src="./assets/app.js"></script>
+</body>
+</html>
