@@ -30,7 +30,7 @@
         <h1>Start</h1>
         <p class="muted">Works offline after loading. Resume is available if you leave and come back.</p>
 
-        <div class="stack">
+        <div class="stack startActions">
           <button id="btnNewGame" class="btn btn--primary" type="button">Start New Game</button>
           <button id="btnResume" class="btn" type="button" disabled>Resume Game</button>
         </div>
@@ -44,22 +44,22 @@
 
         <div class="formGrid">
           <div class="field">
-            <label for="playerCount">Number of players</label>
-            <select id="playerCount">
-              <option value="4">4</option>
-              <option value="5">5</option>
-            </select>
+            <label>Select the number of players</label>
+            <div id="playerCountBtns" class="segmented" role="group" aria-label="Number of players">
+              <button type="button" class="segBtn" data-value="4">4</button>
+              <button type="button" class="segBtn" data-value="5">5</button>
+            </div>
           </div>
 
           <div class="field">
-            <label for="holeCount">Number of holes</label>
-            <select id="holeCount"></select>
+            <label>Select the number of holes</label>
+            <div id="holeCountBtns" class="segmented" role="group" aria-label="Number of holes"></div>
             <div class="hint">Suggested values are multiples of the player count.</div>
           </div>
         </div>
 
         <div class="card card--inset">
-          <div class="row row--between row--center">
+          <div class="row row--between row--center setupPlayersHeader">
             <h2>Players</h2>
             <button id="btnRandomize" class="btn btn--ghost" type="button">Randomize Order</button>
           </div>
@@ -83,7 +83,7 @@
           </div>
         </div>
 
-        <div class="row row--between">
+        <div class="row row--between setupFooter">
           <button id="btnBackToLoad" class="btn" type="button">Back</button>
           <button id="btnStartGame" class="btn btn--primary" type="button">Start Game</button>
         </div>
@@ -93,13 +93,15 @@
     <!-- GAME -->
     <section id="screenGame" class="screen hidden">
       <div class="card">
-        <div class="row row--between row--center">
-          <button id="btnPrevHole" class="btn btn--ghost" type="button">←</button>
-          <div class="center">
-            <div id="holeTitle" class="h1like">Hole 1</div>
-            <div id="holeMeta" class="muted small"></div>
+        <div class="stickyHoleBar">
+          <div class="row row--between row--center">
+            <button id="btnPrevHole" class="btn btn--ghost" type="button">←</button>
+            <div class="center">
+              <div id="holeTitle" class="h1like">Hole 1</div>
+              <div id="holeMeta" class="muted small"></div>
+            </div>
+            <button id="btnNextHole" class="btn btn--ghost" type="button">→</button>
           </div>
-          <button id="btnNextHole" class="btn btn--ghost" type="button">→</button>
         </div>
 
         <div class="card card--inset">
@@ -130,23 +132,11 @@
 
         <div class="card card--inset">
           <h2>Result</h2>
-          <div class="stack">
-            <label class="radio">
-              <input type="radio" name="result" value="WOLF" />
-              <span>Wolf Team wins</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="result" value="OTHER" />
-              <span>Other Team wins</span>
-            </label>
-            <label class="radio">
-              <input type="radio" name="result" value="TIE" />
-              <span>Tie</span>
-            </label>
-          </div>
+          <!-- New: results as buttons (matches app.js changes) -->
+          <div id="resultButtons" class="pillGrid"></div>
         </div>
 
-        <div class="row row--between">
+        <div class="row row--between gameFooter">
           <button id="btnViewScores" class="btn" type="button">Scoreboard</button>
           <button id="btnSaveHole" class="btn btn--primary" type="button">Save Hole</button>
         </div>

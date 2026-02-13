@@ -22,8 +22,8 @@
   const qsa = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
   function showScreen(name) {
-    Object.values(SCREENS).forEach((sid) => $(sid).classList.add('hidden'));
-    $(name).classList.remove('hidden');
+    Object.values(SCREENS).forEach((sid) => $(sid)?.classList.add('hidden'));
+    $(name)?.classList.remove('hidden');
   }
 
   function clamp(n, min, max) {
@@ -61,6 +61,15 @@
 
   function safeParse(json) {
     try { return JSON.parse(json); } catch { return null; }
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
   }
 
   // -----------------------------
@@ -147,7 +156,6 @@
     return base.slice(cut).concat(base.slice(0, cut));
   }
 
-
   function wolfIdForHole(holeIndex) {
     const order = rotatedOrderForHole(holeIndex);
     return order[order.length - 1];
@@ -177,7 +185,6 @@
         const cut = (n - offset) % n;
         return base.slice(cut).concat(base.slice(0, cut));
       })();
-
 
       const wolfId = order[order.length - 1];
       const others = order.slice(0, order.length - 1);
@@ -248,14 +255,11 @@
       const potUnits = losers.length * 1 * multUnits;
 
       // each winner receives pot / winners.length
-      // store as sixth-units: divisible for 4-player games; for 5-player games this yields thirds -> still integer with POINTS_UNIT=6
-      const shareUnits = Math.floor(potUnits / winners.length); // should divide evenly with our unit choice
-      // Safety: if not divisible, we still distribute with remainder to keep totals consistent
+      const shareUnits = Math.floor(potUnits / winners.length);
       const remainder = potUnits - (shareUnits * winners.length);
 
       for (const pid of losers) totals[pid] -= 1 * multUnits;
 
-      // distribute to winners (with remainder to first winner)
       winners.forEach((pid, idx) => {
         totals[pid] += shareUnits + (idx === 0 ? remainder : 0);
       });
@@ -268,28 +272,50 @@
   }
 
   // -----------------------------
-  // UI: Setup
+  // UI: Setup (buttons for players/holes)
   // -----------------------------
-  function renderHoleOptions() {
-    const pc = Number($('playerCount').value);
-    const holes = $('holeCount');
-    holes.innerHTML = '';
+  function setSegmentActive(containerEl, value) {
+    if (!containerEl) return;
+    qsa('.segBtn', containerEl).forEach(btn => {
+      btn.classList.toggle('segBtn--active', btn.dataset.value === String(value));
+    });
+  }
 
-    const suggested = pc === 4 ? [8, 12, 16, 20] : [10, 15, 20];
+  function renderHoleOptionsButtons(playerCount, selectedHoleCount) {
+    const wrap = $('holeCountBtns');
+    if (!wrap) return;
+
+    wrap.innerHTML = '';
+
+    const suggested = playerCount === 4 ? [8, 12, 16, 20] : [10, 15, 20];
     suggested.forEach(v => {
-      const opt = document.createElement('option');
-      opt.value = String(v);
-      opt.textContent = String(v);
-      holes.appendChild(opt);
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'segBtn';
+      btn.dataset.value = String(v);
+      btn.textContent = String(v);
+      btn.addEventListener('click', () => {
+        game.holeCount = v;
+        setSegmentActive(wrap, v);
+        saveGame();
+      });
+      wrap.appendChild(btn);
     });
 
-    // default selection
-    holes.value = String(pc === 4 ? 12 : 15);
+    const pick =
+      selectedHoleCount && suggested.includes(selectedHoleCount)
+        ? selectedHoleCount
+        : (playerCount === 4 ? 12 : 15);
+
+    game.holeCount = pick;
+    setSegmentActive(wrap, pick);
   }
 
   function renderPlayerInputs() {
-    const pc = Number($('playerCount').value);
+    const pc = Number(game?.playerCount ?? 4);
     const wrap = $('playerInputs');
+    if (!wrap) return;
+
     wrap.innerHTML = '';
 
     for (let i = 0; i < pc; i++) {
@@ -306,20 +332,18 @@
 
   function buildPlayersFromInputs() {
     const inputs = qsa('.playerNameInput');
-    const players = inputs.map((inp, i) => ({
+    return inputs.map((inp, i) => ({
       id: `p${i + 1}`,
       name: (inp.value || `Player ${i + 1}`).trim(),
     }));
-    return players;
   }
 
   // -----------------------------
   // UI: Game Screen
   // -----------------------------
-  function setPartnerActive(partnerId) {
-    qsa('.pill').forEach(btn => {
-      btn.classList.toggle('pill--active', btn.dataset.pid === partnerId);
-    });
+  function setPillActive(containerEl, matchFn) {
+    if (!containerEl) return;
+    qsa('.pill', containerEl).forEach(btn => btn.classList.toggle('pill--active', !!matchFn(btn)));
   }
 
   function renderGameScreen() {
@@ -337,69 +361,108 @@
 
     // order list
     const ol = $('orderList');
-    ol.innerHTML = '';
-    order.forEach((pid, idx) => {
-      const li = document.createElement('li');
-      li.textContent = idToName(pid);
-      if (idx === order.length - 1) {
-        const tag = document.createElement('span');
-        tag.className = 'tag';
-        tag.textContent = 'WOLF';
-        li.appendChild(tag);
-      }
-      ol.appendChild(li);
-    });
-
-    // blind wolf option visibility
-    const blindEnabled = !!game.options.blindWolf;
-    $('blindWolfBlock').classList.toggle('hidden', !blindEnabled);
+    if (ol) {
+      ol.innerHTML = '';
+      order.forEach((pid, idx) => {
+        const li = document.createElement('li');
+        li.textContent = idToName(pid);
+        if (idx === order.length - 1) {
+          const tag = document.createElement('span');
+          tag.className = 'tag';
+          tag.textContent = 'WOLF';
+          li.appendChild(tag);
+        }
+        ol.appendChild(li);
+      });
+    }
 
     const hole = game.holes[i];
 
+    // blind wolf option visibility
+    const blindEnabled = !!game.options.blindWolf;
+    $('blindWolfBlock')?.classList.toggle('hidden', !blindEnabled);
+
     // blind wolf toggle
-    $('blindWolfToggle').checked = !!hole.blind;
+    if ($('blindWolfToggle')) $('blindWolfToggle').checked = !!hole.blind;
 
     // partner buttons (exclude wolf)
     const pb = $('partnerButtons');
-    pb.innerHTML = '';
-    order.slice(0, -1).forEach(pid => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'pill';
-      btn.dataset.pid = pid;
-      btn.textContent = idToName(pid);
-      btn.addEventListener('click', () => {
-        const h = game.holes[game.currentHoleIndex];
-        h.partnerId = pid;
-        h.loneWolf = false;
-        $('loneWolfToggle').checked = false;
-        setPartnerActive(pid);
-        saveGame();
+    if (pb) {
+      pb.innerHTML = '';
+      order.slice(0, -1).forEach(pid => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pill';
+        btn.dataset.pid = pid;
+        btn.textContent = idToName(pid);
+        btn.addEventListener('click', () => {
+          const h = game.holes[game.currentHoleIndex];
+          h.partnerId = pid;
+          h.loneWolf = false;
+          if ($('loneWolfToggle')) $('loneWolfToggle').checked = false;
+          setPillActive(pb, (b) => b.dataset.pid === pid);
+          saveGame();
+          $('saveStatus').textContent = 'Saved.';
+        });
+        pb.appendChild(btn);
       });
-      pb.appendChild(btn);
-    });
+
+      // restore partner highlight
+      setPillActive(pb, (b) => b.dataset.pid === (hole.partnerId ?? ''));
+    }
 
     // lone wolf toggle
-    $('loneWolfToggle').checked = !!hole.loneWolf;
-    $('loneWolfToggle').onchange = (e) => {
-      const h = game.holes[game.currentHoleIndex];
-      h.loneWolf = !!e.target.checked;
-      if (h.loneWolf) h.partnerId = null;
-      setPartnerActive(h.partnerId);
-      saveGame();
-    };
-
-    // restore partner selection highlight
-    setPartnerActive(hole.partnerId);
-
-    // restore result radio
-    qsa('input[name="result"]').forEach(r => {
-      r.checked = (r.value === hole.result);
-      r.onchange = () => {
-        game.holes[game.currentHoleIndex].result = r.value;
+    if ($('loneWolfToggle')) {
+      $('loneWolfToggle').checked = !!hole.loneWolf;
+      $('loneWolfToggle').onchange = (e) => {
+        const h = game.holes[game.currentHoleIndex];
+        h.loneWolf = !!e.target.checked;
+        if (h.loneWolf) h.partnerId = null;
+        // update partner highlight
+        if (pb) setPillActive(pb, (b) => b.dataset.pid === (h.partnerId ?? ''));
         saveGame();
+        $('saveStatus').textContent = 'Saved.';
       };
-    });
+    }
+
+    // Result selection as buttons (requires #resultButtons in index.html)
+    const rb = $('resultButtons');
+    if (rb) {
+      rb.innerHTML = '';
+      const results = [
+        { value: 'WOLF', label: 'Wolf Team wins' },
+        { value: 'OTHER', label: 'Other Team wins' },
+        { value: 'TIE', label: 'Tie' },
+      ];
+
+      results.forEach(r => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'pill';
+        btn.dataset.value = r.value;
+        btn.textContent = r.label;
+        btn.addEventListener('click', () => {
+          game.holes[game.currentHoleIndex].result = r.value;
+          setPillActive(rb, (b) => b.dataset.value === r.value);
+          saveGame();
+          $('saveStatus').textContent = 'Saved.';
+        });
+        rb.appendChild(btn);
+      });
+
+      // restore highlight
+      setPillActive(rb, (b) => b.dataset.value === (hole.result ?? ''));
+    } else {
+      // Backward compatibility: if old radios exist, keep them functional
+      qsa('input[name="result"]').forEach(r => {
+        r.checked = (r.value === hole.result);
+        r.onchange = () => {
+          game.holes[game.currentHoleIndex].result = r.value;
+          saveGame();
+          $('saveStatus').textContent = 'Saved.';
+        };
+      });
+    }
 
     // status
     $('saveStatus').textContent = hole.result ? 'Saved.' : 'Not yet scored.';
@@ -418,7 +481,6 @@
     ensureHolesLength();
     const { totals, perHole } = computeScores(game);
 
-    // totals table
     const rows = game.players
       .map(p => ({ id: p.id, name: p.name, units: totals[p.id] ?? 0 }))
       .sort((a, b) => b.units - a.units);
@@ -436,8 +498,9 @@
     `;
     $('scoreTableWrap').innerHTML = tableHtml;
 
-    // holes list w/ jump buttons
     const list = $('holesList');
+    if (!list) return;
+
     list.innerHTML = '';
     perHole.forEach((h) => {
       const div = document.createElement('div');
@@ -461,21 +524,11 @@
     });
   }
 
-  function escapeHtml(str) {
-    return String(str)
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
-      .replaceAll('"', '&quot;')
-      .replaceAll("'", '&#039;');
-  }
-
   // -----------------------------
   // PWA / Service Worker
   // -----------------------------
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    // register relative so it works in /wolf subfolder
     navigator.serviceWorker.register('./service-worker.js').catch(() => {});
   }
 
@@ -484,68 +537,87 @@
   // -----------------------------
   function updateResumeButton() {
     const has = !!localStorage.getItem(STORAGE_KEY);
-    $('btnResume').disabled = !has;
+    if ($('btnResume')) $('btnResume').disabled = !has;
+  }
+
+  function initSetupUI() {
+    if (!game) game = newGameTemplate();
+
+    // Setup: player count buttons
+    const pcb = $('playerCountBtns');
+    if (pcb) {
+      qsa('.segBtn', pcb).forEach(btn => {
+        btn.addEventListener('click', () => {
+          const pc = Number(btn.dataset.value);
+
+          game.playerCount = pc;
+          game.players = Array.from({ length: pc }).map((_, i) => ({
+            id: `p${i + 1}`,
+            name: game.players?.[i]?.name ?? `Player ${i + 1}`,
+          }));
+
+          setSegmentActive(pcb, pc);
+          renderHoleOptionsButtons(pc, game.holeCount);
+          renderPlayerInputs();
+          saveGame();
+        });
+      });
+
+      // initial highlight
+      setSegmentActive(pcb, game.playerCount);
+    }
+
+    // initial holes buttons
+    renderHoleOptionsButtons(game.playerCount, game.holeCount);
+    renderPlayerInputs();
   }
 
   function bindUI() {
     // Top bar
-    $('btnRules').onclick = () => $('rulesDialog').showModal();
-    $('btnCloseRules').onclick = () => $('rulesDialog').close();
+    $('btnRules')?.addEventListener('click', () => $('rulesDialog')?.showModal());
+    $('btnCloseRules')?.addEventListener('click', () => $('rulesDialog')?.close());
 
-    $('btnReset').onclick = () => {
+    $('btnReset')?.addEventListener('click', () => {
       if (confirm('Clear saved game from this device?')) {
         clearGame();
         showScreen(SCREENS.load);
       }
-    };
+    });
 
     // Load screen
-    $('btnNewGame').onclick = () => {
+    $('btnNewGame')?.addEventListener('click', () => {
       game = newGameTemplate();
       showScreen(SCREENS.setup);
-      // render setup defaults
-      $('playerCount').value = '4';
-      renderHoleOptions();
-      renderPlayerInputs();
-      $('optPushTies').checked = false;
-      $('optBlindWolf').checked = false;
-    };
 
-    $('btnResume').onclick = () => {
+      // reset options UI
+      if ($('optPushTies')) $('optPushTies').checked = false;
+      if ($('optBlindWolf')) $('optBlindWolf').checked = false;
+
+      initSetupUI();
+    });
+
+    $('btnResume')?.addEventListener('click', () => {
       const loaded = loadGame();
       if (!loaded) return;
       game = loaded;
       ensureHolesLength();
       showScreen(SCREENS.game);
       renderGameScreen();
-    };
+    });
 
-    // Setup screen controls
-    $('btnBackToLoad').onclick = () => showScreen(SCREENS.load);
+    // Setup screen
+    $('btnBackToLoad')?.addEventListener('click', () => showScreen(SCREENS.load));
 
-    $('playerCount').onchange = () => {
-      const pc = Number($('playerCount').value);
-      // ensure template exists for setup phase
-      if (!game) game = newGameTemplate();
-      game.playerCount = pc;
-      game.players = Array.from({ length: pc }).map((_, i) => ({
-        id: `p${i + 1}`,
-        name: game.players?.[i]?.name ?? `Player ${i + 1}`,
-      }));
-      renderHoleOptions();
-      renderPlayerInputs();
-    };
-
-    $('btnRandomize').onclick = () => {
+    $('btnRandomize')?.addEventListener('click', () => {
       const inputs = qsa('.playerNameInput');
       const names = inputs.map(inp => (inp.value || inp.placeholder).trim());
       const shuffled = shuffle(names);
       inputs.forEach((inp, idx) => { inp.value = shuffled[idx]; });
-    };
+    });
 
-    $('btnStartGame').onclick = () => {
-      const pc = Number($('playerCount').value);
-      const hc = Number($('holeCount').value);
+    $('btnStartGame')?.addEventListener('click', () => {
+      const pc = Number(game?.playerCount ?? 4);
+      const hc = Number(game?.holeCount ?? (pc === 4 ? 12 : 15));
 
       const players = buildPlayersFromInputs();
       if (players.some(p => !p.name)) {
@@ -557,8 +629,8 @@
       game.players = players;
       game.holeCount = hc;
       game.options = {
-        pushTies: $('optPushTies').checked,
-        blindWolf: $('optBlindWolf').checked,
+        pushTies: !!$('optPushTies')?.checked,
+        blindWolf: !!$('optBlindWolf')?.checked,
       };
       game.holes = [];
       game.currentHoleIndex = 0;
@@ -568,24 +640,23 @@
 
       showScreen(SCREENS.game);
       renderGameScreen();
-    };
+    });
 
     // Game screen
-    $('btnPrevHole').onclick = () => goToHole(game.currentHoleIndex - 1);
-    $('btnNextHole').onclick = () => goToHole(game.currentHoleIndex + 1);
+    $('btnPrevHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex - 1));
+    $('btnNextHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex + 1));
 
-    $('blindWolfToggle').onchange = (e) => {
+    $('blindWolfToggle')?.addEventListener('change', (e) => {
       game.holes[game.currentHoleIndex].blind = !!e.target.checked;
       saveGame();
       $('saveStatus').textContent = 'Saved.';
-    };
+    });
 
-    $('btnSaveHole').onclick = () => {
+    $('btnSaveHole')?.addEventListener('click', () => {
       const h = game.holes[game.currentHoleIndex];
       const order = rotatedOrderForHole(game.currentHoleIndex);
       const wolfId = order[order.length - 1];
 
-      // validate
       if (!h.result) {
         alert('Select a result (Wolf Team / Other Team / Tie).');
         return;
@@ -606,35 +677,34 @@
       saveGame();
       $('saveStatus').textContent = 'Saved.';
 
-      // auto-advance if not last hole
       if (game.currentHoleIndex < game.holeCount - 1) {
         goToHole(game.currentHoleIndex + 1);
       }
-    };
+    });
 
-    $('btnViewScores').onclick = () => {
+    $('btnViewScores')?.addEventListener('click', () => {
       showScreen(SCREENS.scoreboard);
       renderScoreboard();
-    };
+    });
 
     // Scoreboard
-    $('btnBackToGame').onclick = () => {
+    $('btnBackToGame')?.addEventListener('click', () => {
       showScreen(SCREENS.game);
       renderGameScreen();
-    };
+    });
 
-    $('btnFinishGame').onclick = () => {
+    $('btnFinishGame')?.addEventListener('click', () => {
       game.finishedAt = new Date().toISOString();
       saveGame();
-      $('finishStatus').textContent = `Finished at ${new Date(game.finishedAt).toLocaleString()}`;
-    };
+      if ($('finishStatus')) $('finishStatus').textContent = `Finished at ${new Date(game.finishedAt).toLocaleString()}`;
+    });
 
-    $('btnNewFromScoreboard').onclick = () => {
+    $('btnNewFromScoreboard')?.addEventListener('click', () => {
       if (confirm('Start a new game? This will overwrite the saved game on this device.')) {
         clearGame();
         showScreen(SCREENS.load);
       }
-    };
+    });
   }
 
   // -----------------------------
@@ -644,8 +714,6 @@
     bindUI();
     updateResumeButton();
     registerServiceWorker();
-
-    // start at load screen
     showScreen(SCREENS.load);
   }
 
