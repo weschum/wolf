@@ -1,60 +1,35 @@
 deployment:
   tasks:
-
     # ------------------------------------------------------------
-    # 1) Define where the live site should be deployed
-    #    This is your public web folder for:
-    #    https://chumworx.com/wolf/
+    # 1) Deploy target (public web folder)
     # ------------------------------------------------------------
     - export DEPLOYPATH=/home/chumuvep/public_html/wolf
-
-    # Ensure the deploy directory exists
     - /bin/mkdir -p "$DEPLOYPATH"
 
+    # ------------------------------------------------------------
+    # 2) Clear old deploy contents (preserve common host items)
+    # ------------------------------------------------------------
+    - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name 'cgi-bin' ! -name '.htaccess' -exec /bin/rm -rf {} +
 
     # ------------------------------------------------------------
-    # 2) Clean the deploy folder before copying new files
-    #    - Removes everything inside /wolf
-    #    - Preserves host-managed folders if they exist
-    #      (.well-known, cgi-bin, .htaccess)
-    # ------------------------------------------------------------
-    - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 \
-        ! -name '.well-known' \
-        ! -name 'cgi-bin' \
-        ! -name '.htaccess' \
-        -exec /bin/rm -rf {} +
-
-
-    # ------------------------------------------------------------
-    # 3) Deploy the current Git HEAD to the web folder
-    #    This exports only tracked repo files.
-    #    Works correctly even if the repo is bare.
+    # 3) Export repo HEAD into deploy folder (works even if repo is bare)
     # ------------------------------------------------------------
     - /usr/bin/git --work-tree="$DEPLOYPATH" checkout -f HEAD
 
+    # ------------------------------------------------------------
+    # 4) Remove repo/meta files that should not be web-served
+    #    (Do these as separate lines to avoid YAML/escaping issues)
+    # ------------------------------------------------------------
+    - /bin/rm -rf "$DEPLOYPATH/.git"
+    - /bin/rm -rf "$DEPLOYPATH/.github"
+    - /bin/rm -f  "$DEPLOYPATH/.cpanel.yml"
+    - /bin/rm -f  "$DEPLOYPATH/.gitattributes"
+    - /bin/rm -f  "$DEPLOYPATH/.DS_Store"
+    - /bin/rm -f  "$DEPLOYPATH/README.md"
+    - /bin/rm -f  "$DEPLOYPATH/LICENSE"
 
     # ------------------------------------------------------------
-    # 4) Remove files that should NOT be publicly accessible
-    #    These exist in the repo but shouldn't be served.
-    # ------------------------------------------------------------
-    - /bin/rm -rf \
-        "$DEPLOYPATH/.git" \
-        "$DEPLOYPATH/.github" \
-        "$DEPLOYPATH/.cpanel.yml" \
-        "$DEPLOYPATH/.DS_Store" \
-        "$DEPLOYPATH/.gitattributes" \
-        "$DEPLOYPATH/README.md" \
-        "$DEPLOYPATH/LICENSE"
-
-
-    # ------------------------------------------------------------
-    # 5) Fix permissions (critical on shared hosting)
-    #
-    #    Directories must be 755 (drwxr-xr-x)
-    #    Files must be 644 (-rw-r--r--)
-    #
-    #    Prevents "mystery 404" issues caused by
-    #    Apache not being allowed to read/execute files.
+    # 5) Normalize permissions (prevents weird 404s on shared hosting)
     # ------------------------------------------------------------
     - /usr/bin/find "$DEPLOYPATH" -type d -exec /bin/chmod 755 {} \;
     - /usr/bin/find "$DEPLOYPATH" -type f -exec /bin/chmod 644 {} \;
