@@ -1,0 +1,73 @@
+# ============================================================
+# Wolf PWA: Security + Cache Headers
+# Location: /public_html/wolf/.htaccess
+# ============================================================
+
+# --- Avoid "folder file tree" listings ---
+Options -Indexes
+
+# --- Ensure /wolf/ serves index.html by default ---
+DirectoryIndex index.html
+
+# --- IMPORTANT: Prevent parent .htaccess rewrites from hijacking /wolf routes ---
+# (This previously caused "file exists but 404" behavior.)
+RewriteEngine Off
+
+# ------------------------------------------------------------
+# Basic security headers
+# ------------------------------------------------------------
+<IfModule mod_headers.c>
+  # Don't sniff MIME types
+  Header always set X-Content-Type-Options "nosniff"
+
+  # Clickjacking protection
+  Header always set X-Frame-Options "SAMEORIGIN"
+
+  # Reduce referrer leakage
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+
+  # Limit powerful APIs (tweak if you ever need them)
+  Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+  # Reasonable baseline CSP for a static app (no inline scripts used)
+  # If you later add inline scripts/styles, we’ll update this.
+  Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+</IfModule>
+
+# ------------------------------------------------------------
+# Block access to dotfiles (defense-in-depth)
+# - Allows .well-known if you ever use it
+# ------------------------------------------------------------
+<FilesMatch "^\.">
+  Require all denied
+</FilesMatch>
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteRule ^\.well-known/ - [L]
+</IfModule>
+
+# ------------------------------------------------------------
+# Cache-Control rules (PWA-friendly)
+# ------------------------------------------------------------
+<IfModule mod_headers.c>
+  # HTML should NOT be cached aggressively (lets updates show up quickly)
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache"
+  </FilesMatch>
+
+  # Service worker should be fetched often so updates install reliably
+  <Files "service-worker.js">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+  </Files>
+
+  # Manifest: safe to revalidate (usually small, changes occasionally)
+  <Files "manifest.webmanifest">
+    Header set Cache-Control "no-cache"
+  </Files>
+
+  # Static assets: cache hard (your SW also caches, but this helps first-load)
+  <FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
