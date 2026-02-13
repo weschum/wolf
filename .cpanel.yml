@@ -15,6 +15,7 @@ deployment:
     - /bin/rm -rf "$DEPLOYPATH/__MACOSX"
     - /bin/rm -rf "$DEPLOYPATH/.git"
     - /bin/rm -rf "$DEPLOYPATH/.github"
+    - /bin/rm -f  "$DEPLOYPATH/.gitignore"
     - /bin/rm -f  "$DEPLOYPATH/.cpanel.yml"
     - /bin/rm -f  "$DEPLOYPATH/.gitattributes"
     - /bin/rm -f  "$DEPLOYPATH/README.md"
