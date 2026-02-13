@@ -3,7 +3,7 @@
 */
 'use strict';
 
-const SW_VERSION = 'v1';
+const SW_VERSION = 'v2';
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
 
@@ -14,8 +14,8 @@ const PRECACHE_URLS = [
   './manifest.webmanifest',
   './service-worker.js',
 
-  './assets/styles.v1.css',
-  './assets/app.v1.js',
+  './assets/styles.css',
+  './assets/app.js',
 
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
