@@ -1,35 +1,25 @@
 deployment:
   tasks:
-    # ------------------------------------------------------------
     # 1) Deploy target (public web folder)
-    # ------------------------------------------------------------
     - export DEPLOYPATH=/home/chumuvep/public_html/wolf
     - /bin/mkdir -p "$DEPLOYPATH"
 
-    # ------------------------------------------------------------
     # 2) Clear old deploy contents (preserve common host items)
-    # ------------------------------------------------------------
     - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 ! -name '.well-known' ! -name 'cgi-bin' ! -name '.htaccess' -exec /bin/rm -rf {} +
 
-    # ------------------------------------------------------------
     # 3) Export repo HEAD into deploy folder (works even if repo is bare)
-    # ------------------------------------------------------------
     - /usr/bin/git --work-tree="$DEPLOYPATH" checkout -f HEAD
 
-    # ------------------------------------------------------------
     # 4) Remove repo/meta files that should not be web-served
-    #    (Do these as separate lines to avoid YAML/escaping issues)
-    # ------------------------------------------------------------
+    - /usr/bin/find "$DEPLOYPATH" -name ".DS_Store" -delete
+    - /bin/rm -rf "$DEPLOYPATH/__MACOSX"
     - /bin/rm -rf "$DEPLOYPATH/.git"
     - /bin/rm -rf "$DEPLOYPATH/.github"
     - /bin/rm -f  "$DEPLOYPATH/.cpanel.yml"
     - /bin/rm -f  "$DEPLOYPATH/.gitattributes"
-    - /bin/rm -f  "$DEPLOYPATH/.DS_Store"
     - /bin/rm -f  "$DEPLOYPATH/README.md"
     - /bin/rm -f  "$DEPLOYPATH/LICENSE"
 
-    # ------------------------------------------------------------
     # 5) Normalize permissions (prevents weird 404s on shared hosting)
-    # ------------------------------------------------------------
     - /usr/bin/find "$DEPLOYPATH" -type d -exec /bin/chmod 755 {} \;
     - /usr/bin/find "$DEPLOYPATH" -type f -exec /bin/chmod 644 {} \;

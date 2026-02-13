@@ -1,0 +1,19 @@
+# macOS junk
+.DS_Store
+**/.DS_Store
+
+# Zip files (only used locally / for sharing)
+*.zip
+
+# macOS zip artifact folder
+__MACOSX/
+
+# Editor junk
+.vscode/
+.idea/
+
+# OS misc
+Thumbs.db
+
+# Node (future-proofing in case you add tooling later)
+node_modules/
