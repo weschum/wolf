@@ -1,43 +1,52 @@
 # ============================================================
-# Wolf PWA: Security + Cache Headers
+# Wolf Disc Golf Scoring App
+# Security + Rewrite Isolation + PWA Cache Rules
 # Location: /public_html/wolf/.htaccess
 # ============================================================
 
-# --- Avoid "folder file tree" listings ---
+# ------------------------------------------------------------
+# Prevent directory listing
+# ------------------------------------------------------------
 Options -Indexes
 
-# --- Ensure /wolf/ serves index.html by default ---
+# Serve index.html by default
 DirectoryIndex index.html
 
-# --- IMPORTANT: Prevent parent .htaccess rewrites from hijacking /wolf routes ---
-# (This previously caused "file exists but 404" behavior.)
+# ------------------------------------------------------------
+# IMPORTANT:
+# Disable parent rewrite rules (prevents Website Builder
+# from hijacking /wolf/* requests and causing 404s)
+# ------------------------------------------------------------
 RewriteEngine Off
 
-# ------------------------------------------------------------
-# Basic security headers
-# ------------------------------------------------------------
+
+# ============================================================
+# Security Headers
+# ============================================================
 <IfModule mod_headers.c>
-  # Don't sniff MIME types
+
+  # Prevent MIME-type sniffing
   Header always set X-Content-Type-Options "nosniff"
 
   # Clickjacking protection
   Header always set X-Frame-Options "SAMEORIGIN"
 
-  # Reduce referrer leakage
+  # Referrer control
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
 
-  # Limit powerful APIs (tweak if you ever need them)
+  # Disable powerful APIs (adjust if needed later)
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 
-  # Reasonable baseline CSP for a static app (no inline scripts used)
-  # If you later add inline scripts/styles, we’ll update this.
+  # Content Security Policy (safe for your current static setup)
   Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
+
 </IfModule>
 
-# ------------------------------------------------------------
+
+# ============================================================
 # Block access to dotfiles (defense-in-depth)
-# - Allows .well-known if you ever use it
-# ------------------------------------------------------------
+# Allows .well-known if ever needed
+# ============================================================
 <FilesMatch "^\.">
   Require all denied
 </FilesMatch>
@@ -47,27 +56,52 @@ RewriteEngine Off
   RewriteRule ^\.well-known/ - [L]
 </IfModule>
 
-# ------------------------------------------------------------
-# Cache-Control rules (PWA-friendly)
-# ------------------------------------------------------------
+
+# ============================================================
+# Cache-Control Rules (PWA-Friendly)
+# ============================================================
 <IfModule mod_headers.c>
-  # HTML should NOT be cached aggressively (lets updates show up quickly)
+
+  # HTML should revalidate (ensures updates show up)
   <FilesMatch "\.(html)$">
     Header set Cache-Control "no-cache"
   </FilesMatch>
 
-  # Service worker should be fetched often so updates install reliably
+  # Service worker must NEVER be aggressively cached
   <Files "service-worker.js">
     Header set Cache-Control "no-cache, no-store, must-revalidate"
   </Files>
 
-  # Manifest: safe to revalidate (usually small, changes occasionally)
+  # Manifest should revalidate
   <Files "manifest.webmanifest">
     Header set Cache-Control "no-cache"
   </Files>
 
-  # Static assets: cache hard (your SW also caches, but this helps first-load)
+  # Static assets can be cached long-term
   <FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
+
+</IfModule>
+
+
+# ============================================================
+# Expires fallback (for hosts that still rely on mod_expires)
+# ============================================================
+<IfModule mod_expires.c>
+  ExpiresActive On
+
+  # Do not cache app shell aggressively
+  ExpiresByType text/html "access plus 0 seconds"
+
+  # Ensure service worker updates quickly
+  ExpiresByType application/javascript "access plus 0 seconds"
+
+  # Long cache for static assets
+  ExpiresByType text/css "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/gif "access plus 1 year"
 </IfModule>
