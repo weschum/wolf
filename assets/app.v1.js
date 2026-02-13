@@ -529,7 +529,24 @@
   // -----------------------------
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
-    navigator.serviceWorker.register('./service-worker.js').catch(() => {});
+
+    navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+      // If a new SW is found, tell it to activate immediately
+      reg.addEventListener('updatefound', () => {
+        const sw = reg.installing;
+        if (!sw) return;
+        sw.addEventListener('statechange', () => {
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+            sw.postMessage('SKIP_WAITING');
+          }
+        });
+      });
+
+      // When the controller changes, reload to use the new cached assets
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }).catch(() => {});
   }
 
   // -----------------------------

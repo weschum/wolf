@@ -1,51 +1,101 @@
-/* eslint-disable no-restricted-globals */
-const CACHE_NAME = 'wolf-v1';
-const ASSETS = [
+/* Wolf PWA Service Worker
+   Versioned precache + sane caching strategies
+*/
+'use strict';
+
+const SW_VERSION = 'v1';
+const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
+const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
+
+// Update this list whenever you bump asset filenames (v2, v3, etc.)
+const PRECACHE_URLS = [
   './',
   './index.html',
-  './assets/styles.css',
-  './assets/app.js',
-  './manifest.webmanifest'
-  // icons are optional; add if you have them:
-  // './assets/icons/icon-192.png',
-  // './assets/icons/icon-512.png',
+  './manifest.webmanifest',
+  './service-worker.js',
+
+  './assets/styles.v1.css',
+  './assets/app.v1.js',
+
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
 ];
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.open(CACHE_STATIC).then((cache) => cache.addAll(PRECACHE_URLS))
+      .then(() => self.skipWaiting())
   );
-  self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k === CACHE_NAME ? null : caches.delete(k))))
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    await Promise.all(
+      keys
+        .filter(k => k.startsWith('wolf-') && k !== CACHE_STATIC && k !== CACHE_PAGES)
+        .map(k => caches.delete(k))
+    );
+    await self.clients.claim();
+  })());
 });
+
+// Allow the page to tell the SW to activate immediately
+self.addEventListener('message', (event) => {
+  if (event?.data === 'SKIP_WAITING') self.skipWaiting();
+});
+
+function isNavigationRequest(request) {
+  return request.mode === 'navigate' ||
+    (request.method === 'GET' && request.headers.get('accept')?.includes('text/html'));
+}
+
+function isVersionedAsset(url) {
+  // You can broaden this later if you version more files
+  return url.pathname.includes('/assets/') &&
+    (url.pathname.includes('.v') || url.pathname.includes('icon-'));
+}
 
 self.addEventListener('fetch', (event) => {
   const req = event.request;
-  if (req.method !== 'GET') return;
+  const url = new URL(req.url);
 
-  event.respondWith(
-    caches.match(req).then((cached) => {
+  // Only handle our own origin
+  if (url.origin !== self.location.origin) return;
+
+  // 1) HTML / navigations: network-first, fallback to cache
+  if (isNavigationRequest(req)) {
+    event.respondWith((async () => {
+      try {
+        const fresh = await fetch(req);
+        const cache = await caches.open(CACHE_PAGES);
+        cache.put('./index.html', fresh.clone());
+        return fresh;
+      } catch {
+        const cached = await caches.match('./index.html');
+        return cached || caches.match('./');
+      }
+    })());
+    return;
+  }
+
+  // 2) Versioned static assets: cache-first (fast), fallback network
+  if (isVersionedAsset(url)) {
+    event.respondWith((async () => {
+      const cached = await caches.match(req);
       if (cached) return cached;
+      const fresh = await fetch(req);
+      const cache = await caches.open(CACHE_STATIC);
+      cache.put(req, fresh.clone());
+      return fresh;
+    })());
+    return;
+  }
 
-      return fetch(req)
-        .then((res) => {
-          // cache same-origin GET requests
-          const url = new URL(req.url);
-          if (url.origin === self.location.origin) {
-            const copy = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, copy));
-          }
-          return res;
-        })
-        .catch(() => caches.match('./index.html'));
-    })
-  );
+  // 3) Default: try cache, then network
+  event.respondWith((async () => {
+    const cached = await caches.match(req);
+    if (cached) return cached;
+    return fetch(req);
+  })());
 });
