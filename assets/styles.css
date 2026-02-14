@@ -4,16 +4,211 @@
    ========================================================= */
 
 :root{
-  /* App theme tokens */
+  /* Graphite (Default Theme) */
+
+  --bg: #111314;          /* deep graphite */
+  --card: #181b1d;        /* charcoal card */
+  --card2: #1f2326;       /* lifted card */
+  --surface: #16191b;     /* controls/buttons surface */
+
+  --text: #f1f3f5;        /* soft white */
+  --muted: #a8b0b7;       /* cool gray */
+  --border: #2b3136;      /* graphite edge */
+
+  --primary: #4dabf7;     /* clean electric blue */
+  --primary-rgb: 77 171 247;
+
+  --danger: #ff6b6b;      /* modern soft red */
+  --danger-rgb: 255 107 107;
+}
+
+/* =========================================================
+   Theme Overrides (set on <html data-theme="...">)
+   ========================================================= */
+
+/* Default graphite theme */
+html[data-theme="graphite"]{
+  --bg:#111314;
+  --card:#181b1d;
+  --card2:#1f2326;
+  --surface:#16191b;
+
+  --text:#f1f3f5;
+  --muted:#a8b0b7;
+  --border:#2b3136;
+
+  --primary:#4dabf7;
+  --primary-rgb:77 171 247;
+
+  --danger:#ff6b6b;
+  --danger-rgb:255 107 107;
+}
+
+/* Coffee (warm browns + cream) */
+html[data-theme="coffee"]{
+  --bg:#1c1512;
+  --card:#2a1f1a;
+  --card2:#33261f;
+  --surface:#241b16;
+
+  --text:#f5e9dd;
+  --muted:#cbb8a6;
+  --border:#46352c;
+
+  --primary:#c48a4a;
+  --primary-rgb:196 138 74;
+
+  --danger:#b4544a;
+  --danger-rgb:180 84 74;
+}
+
+/* Forest (deep green + bark) */
+html[data-theme="forest"]{
+  --bg:#0f1711;
+  --card:#162218;
+  --card2:#1c2b1f;
+  --surface:#132016;
+
+  --text:#e9f2e6;
+  --muted:#b9c8b7;
+  --border:#2b3a2f;
+
+  --primary:#6fb07a;        /* fern */
+  --primary-rgb:111 176 122;
+
+  --danger:#c56b5b;         /* clay */
+  --danger-rgb:197 107 91;
+}
+
+/* Midnight (your original vibe) */
+html[data-theme="midnight"]{
   --bg:#0b1020;
   --card:#121a33;
   --card2:#0f1730;
+  --surface:#0d1430;
+
   --text:#e5e7eb;
   --muted:#a7b0c0;
   --border:#263255;
+
   --primary:#38bdf8;
+  --primary-rgb:56 189 248;
+
   --danger:#fb7185;
+  --danger-rgb:251 113 133;
 }
+
+/* Summer time (light sand + ocean pop) */
+html[data-theme="summer"]{
+  --bg:#fffaf2;
+  --card:#ffffff;
+  --card2:#fff1dc;
+  --surface:#ffffff;
+
+  --text:#2a2a2a;
+  --muted:#7d6e5c;
+  --border:#f0d9b5;
+
+  --primary:#ff9f1c;        /* sunset orange */
+  --primary-rgb:255 159 28;
+
+  --danger:#e63946;         /* coral red */
+  --danger-rgb:230 57 70;
+}
+
+/* Rainbow (Bright. Clean. Modern.) */
+html[data-theme="rainbow"]{
+  --bg:#f7f7ff;
+  --card:#ffffff;
+  --card2:#f0f1ff;
+  --surface:#ffffff;
+
+  --text:#1f1f2e;
+  --muted:#6c6c8a;
+  --border:#d8d9ff;
+
+  --primary:#7c3aed;        /* bold violet */
+  --primary-rgb:124 58 237;
+
+  --danger:#ef4444;         /* bright red */
+  --danger-rgb:239 68 68;
+}
+
+/* Retro arcade */
+html[data-theme="retro"]{
+  /* Centipede / arcade cabinet dark */
+  --bg:#070805;            /* near-black with a warm green-brown tint */
+  --card:#0f1109;          /* dark cabinet panel */
+  --card2:#14170b;         /* slightly lifted panel */
+  --surface:#0b0d07;       /* controls/buttons surface */
+
+  /* Typography */
+  --text:#ffe7b5;          /* your cream = “phosphor glow” */
+  --muted:#ffb762;         /* soft orange for secondary text */
+  --border:#2a2a16;        /* dark olive trim (keeps it arcade, not gray) */
+
+  /* Accents */
+  --primary:#8c7318;       /* centipede green-ish gold (mustard) */
+  --primary-rgb:140 115 24;
+
+  --danger:#f73910;        /* hot arcade red */
+  --danger-rgb:247 57 16;
+}
+
+/* Cotton candy (Bright pastel) */
+html[data-theme="cottoncandy"]{
+  --bg:#fff5fb;
+  --card:#ffffff;
+  --card2:#ffe9f7;
+  --surface:#ffffff;
+
+  --text:#3a1f2d;
+  --muted:#a67aa2;
+  --border:#f5c2e7;
+
+  --primary:#ff6ec7;        /* pink */
+  --primary-rgb:255 110 199;
+
+  --danger:#6ecbff;         /* baby blue */
+  --danger-rgb:110 203 255;
+}
+
+/* Crimson (wine + gold) */
+html[data-theme="crimson"]{
+  --bg:#12090b;
+  --card:#1b0d10;
+  --card2:#220f13;
+  --surface:#160b0e;
+
+  --text:#ffeef0;
+  --muted:#d7aeb3;
+  --border:#3b1c22;
+
+  --primary:#f2c14e;        /* gold */
+  --primary-rgb:242 193 78;
+
+  --danger:#e11d48;         /* crimson */
+  --danger-rgb:225 29 72;
+}
+
+/* Teal (inky teal + mint) */
+html[data-theme="teal"]{
+  --bg:#071316;
+  --card:#0c1f23;
+  --card2:#0f262b;
+  --surface:#0a1a1d;
+
+  --text:#e6fbfb;
+  --muted:#a8d2d2;
+  --border:#184047;
+
+  --primary:#2dd4bf;        /* teal */
+  --primary-rgb:45 212 191;
+
+  --danger:#fb7185;         /* keep a readable warm danger */
+  --danger-rgb:251 113 133;
+}
+
 
 /* ---------- Base / Reset ---------- */
 *{box-sizing:border-box}
@@ -37,13 +232,45 @@ a{color:var(--primary)}
   /* Sticky app header */
   position:sticky;
   top:0;
-  background:rgba(11,16,32,.92);
+  background:var(--bg);
   backdrop-filter: blur(10px);
   z-index: 20; /* ensures it stays above sticky hole header */
 }
 .brand__title{font-size:18px;font-weight:800}
 .brand__subtitle{font-size:12px;color:var(--muted)}
 .topbar__actions{display:flex;gap:8px}
+
+/* ---------- Theme picker (top bar) ---------- */
+.themePicker{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  margin:0;
+}
+
+.themePicker__label{
+  font-size:12px;
+  color:var(--muted);
+  font-weight:700;
+}
+
+.themeSelect{
+  appearance:none;
+  padding-right: 28px; /* space for the dropdown arrow */
+}
+
+.themeSelect:focus{
+  outline:none;
+  border-color: rgb(var(--primary-rgb) / 0.8);
+  box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.18) inset;
+}
+
+/* On very small screens, hide the "Theme" label to save space */
+@media (max-width:420px){
+  .themePicker__label{display:none}
+}
+
 
 /* ---------- Layout Containers ---------- */
 .container{max-width:860px;margin:0 auto;padding:16px}
@@ -89,7 +316,7 @@ h2{margin:0 0 10px 0;font-size:16px}
 
 .segBtn{
   border:1px solid var(--border);
-  background:#0d1430;
+  background:var(--surface);
   color:var(--text);
   padding:12px 10px;
   border-radius:12px;
@@ -99,9 +326,9 @@ h2{margin:0 0 10px 0;font-size:16px}
 }
 
 .segBtn--active{
-  border-color:rgba(56,189,248,.95);
-  box-shadow:0 0 0 2px rgba(56,189,248,.18) inset;
-  background:rgba(56,189,248,.12);
+  border-color: rgb(var(--primary-rgb) / 0.95);
+  box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.18) inset;
+  background: rgb(var(--primary-rgb) / 0.12);
 }
 
 /* =========================================================
@@ -110,7 +337,7 @@ h2{margin:0 0 10px 0;font-size:16px}
 .btn{
   appearance:none;
   border:1px solid var(--border);
-  background:#0d1430;
+  background:var(--surface);
   color:var(--text);
   padding:10px 12px;
   border-radius:12px;
@@ -119,8 +346,8 @@ h2{margin:0 0 10px 0;font-size:16px}
 }
 .btn:disabled{opacity:.45;cursor:not-allowed}
 .btn--ghost{background:transparent}
-.btn--primary{border-color:rgba(56,189,248,.6); background:rgba(56,189,248,.12)}
-.btn--danger{border-color:rgba(251,113,133,.6); background:rgba(251,113,133,.12)}
+.btn--primary{border-color:rgb(var(--primary-rgb) / 0.6); background:rgb(var(--primary-rgb) / 0.12)}
+.btn--danger{border-color:rgb(var(--danger-rgb) / 0.6); background:rgb(var(--danger-rgb) / 0.12)}
 
 /* Start screen only: bigger buttons without affecting the rest of the app */
 .startActions .btn{
@@ -154,19 +381,19 @@ h2{margin:0 0 10px 0;font-size:16px}
   padding:10px 12px;
   border-radius:12px;
   border:1px solid var(--border);
-  background:#0d1430;
+  background:var(--surface);
   color:var(--text);
 }
 
 /* Setup: player input boxes taller / easier to tap */
 .playerNameInput{
   width:100%;
-  padding:14px 12px;
+  padding:12px 12px;
   border-radius:12px;
   border:1px solid var(--border);
-  background:#0d1430;
+  background: var(--card);
   color:var(--text);
-  font-size:16px;
+  font-size:14px;
 }
 
 /* Give the Players header row a bit of separation from inputs */
@@ -206,7 +433,7 @@ h2{margin:0 0 10px 0;font-size:16px}
   display:inline-block;
   margin-left:8px;
   font-size:11px;
-  color:#0b1020;
+  color:#ffffff; /* always white for clarity */
   background:var(--primary);
   padding:2px 8px;
   border-radius:999px;
@@ -227,7 +454,7 @@ h2{margin:0 0 10px 0;font-size:16px}
 
 .pill{
   border:1px solid var(--border);
-  background:#0d1430;
+  background:var(--surface);
   color:var(--text);
   padding:10px;
   border-radius:999px;
@@ -236,8 +463,8 @@ h2{margin:0 0 10px 0;font-size:16px}
   text-align:center;
 }
 .pill--active{
-  border-color:rgba(56,189,248,.9);
-  background:rgba(56,189,248,.14);
+  border-color:rgb(var(--primary-rgb) / 0.9);
+  background:rgb(var(--primary-rgb) / 0.14);
 }
 
 /* =========================================================
@@ -274,7 +501,7 @@ h2{margin:0 0 10px 0;font-size:16px}
   padding:10px;
   border:1px solid var(--border);
   border-radius:12px;
-  background:#0d1430;
+  background:var(--surface);
 }
 .holeRow button{padding:8px 10px}
 

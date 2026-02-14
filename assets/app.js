@@ -5,6 +5,22 @@
   // Constants / Storage
   // -----------------------------
   const STORAGE_KEY = 'wolf.v1.game';
+  const THEME_KEY = 'wolf.v1.theme';
+
+  function applyTheme(theme) {
+    if (!theme) {
+      document.documentElement.removeAttribute('data-theme');
+      localStorage.removeItem(THEME_KEY);
+      return;
+    }
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem(THEME_KEY, theme);
+  }
+
+  function loadTheme() {
+    return localStorage.getItem(THEME_KEY) || 'graphite';
+  }
+
   const POINTS_UNIT = 6; // store points as "sixths" to avoid floats (handles 1.5, 2/3, etc.)
 
   const SCREENS = {
@@ -600,6 +616,17 @@
         showScreen(SCREENS.load);
       }
     });
+    // Theme picker (top bar)
+    const themeSelect = $('themeSelect');
+    if (themeSelect) {
+      const currentTheme = loadTheme();
+      themeSelect.value = currentTheme;
+      applyTheme(currentTheme);
+
+      themeSelect.addEventListener('change', (e) => {
+        applyTheme(e.target.value);
+      });
+    }
 
     // Load screen
     $('btnNewGame')?.addEventListener('click', () => {
@@ -731,6 +758,7 @@
     bindUI();
     updateResumeButton();
     registerServiceWorker();
+    applyTheme(loadTheme());
     showScreen(SCREENS.load);
   }
 
