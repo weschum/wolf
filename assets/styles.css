@@ -403,6 +403,26 @@ h2{margin:0 0 10px 0;font-size:16px}
 .setupFooter{ margin-top:16px; }
 .gameFooter{ margin-top:16px; }
 
+/* Bottom bar on game screen: scores + (hole info) + save */
+.gameFooterBar{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.gameFooterBar .footerMid{
+  flex:1;
+  text-align:center;
+  line-height:1.1;
+}
+
+.holeFooterTitle{
+  font-size:12px;
+  font-weight:900;
+}
+
+
+
 /* =========================================================
    Checkbox / Radio rows
    ========================================================= */

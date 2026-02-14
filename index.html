@@ -121,7 +121,7 @@
         </div>
 
         <div class="card card--inset">
-          <h2>Order (Wolf is last)</h2>
+          <h2>Tee Order</h2>
           <ol id="orderList" class="orderList"></ol>
         </div>
 
@@ -129,9 +129,9 @@
           <h2>Blind Wolf</h2>
           <label class="check">
             <input id="blindWolfToggle" type="checkbox" />
-            <span>Blind Wolf declared (double points)</span>
+            <span>Blind Wolf declared (2x pts)</span>
           </label>
-          <div class="hint">If enabled, multiplier doubles for this hole.</div>
+          <div class="hint">If enabled, wager doubles for this hole.</div>
         </div>
 
         <div class="card card--inset">
@@ -151,8 +151,14 @@
           <div id="resultButtons" class="pillGrid"></div>
         </div>
 
-        <div class="row row--between gameFooter">
-          <button id="btnViewScores" class="btn" type="button">Scoreboard</button>
+        <div class="gameFooterBar gameFooter">
+          <button id="btnViewScores" class="btn" type="button">Scores</button>
+
+          <div class="footerMid">
+            <div id="holeTitleBottom" class="holeFooterTitle">Hole</div>
+            <div id="holeMetaBottom" class="muted small"></div>
+          </div>
+
           <button id="btnSaveHole" class="btn btn--primary" type="button">Save Hole</button>
         </div>
 

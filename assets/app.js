@@ -374,6 +374,9 @@
     const order = rotatedOrderForHole(i);
     const wolfId = order[order.length - 1];
     $('holeMeta').textContent = `Wolf: ${idToName(wolfId)}`;
+    $('holeTitleBottom').textContent = `Hole ${holeNum} of ${game.holeCount}`;
+    $('holeMetaBottom').textContent = `Wolf: ${idToName(wolfId)}`;
+
 
     // order list
     const ol = $('orderList');
