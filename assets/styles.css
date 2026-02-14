@@ -175,20 +175,20 @@ html[data-theme="cottoncandy"]{
 
 /* Crimson (wine + gold) */
 html[data-theme="crimson"]{
-  --bg:#12090b;
-  --card:#1b0d10;
-  --card2:#220f13;
-  --surface:#160b0e;
+  --bg:#660000;
+  --card:#8c001a;
+  --card2:#990033;
+  --surface:#5f021f;
 
   --text:#ffeef0;
-  --muted:#d7aeb3;
-  --border:#3b1c22;
+  --muted:#dbbcc0;
+  --border:#59353c;
 
-  --primary:#f2c14e;        /* gold */
-  --primary-rgb:242 193 78;
+  --primary:#ff9000;        /* deep saffron */
+  --primary-rgb:255 144 0;
 
-  --danger:#e11d48;         /* crimson */
-  --danger-rgb:225 29 72;
+  --danger:#ffe800;         /* crimson */
+  --danger-rgb:255 232 0;
 }
 
 /* Teal (inky teal + mint) */

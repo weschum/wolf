@@ -7,6 +7,18 @@
   const STORAGE_KEY = 'wolf.v1.game';
   const THEME_KEY = 'wolf.v1.theme';
 
+  const POINTS_UNIT = 6; // store points as "sixths" to avoid floats (handles 1.5, 2/3, etc.)
+
+  const SCREENS = {
+    load: 'screenLoad',
+    setup: 'screenSetup',
+    game: 'screenGame',
+    scoreboard: 'screenScoreboard',
+  };
+
+  // -----------------------------
+  // Theme helpers
+  // -----------------------------
   function applyTheme(theme) {
     if (!theme) {
       document.documentElement.removeAttribute('data-theme');
@@ -20,15 +32,6 @@
   function loadTheme() {
     return localStorage.getItem(THEME_KEY) || 'graphite';
   }
-
-  const POINTS_UNIT = 6; // store points as "sixths" to avoid floats (handles 1.5, 2/3, etc.)
-
-  const SCREENS = {
-    load: 'screenLoad',
-    setup: 'screenSetup',
-    game: 'screenGame',
-    scoreboard: 'screenScoreboard',
-  };
 
   // -----------------------------
   // DOM Helpers
@@ -91,16 +94,6 @@
   // -----------------------------
   // Game State
   // -----------------------------
-  /**
-   * game = {
-   *   id, createdAt,
-   *   playerCount, players: [{id,name}],
-   *   holeCount,
-   *   options: { pushTies, blindWolf },
-   *   holes: [ { partnerId|null, loneWolf:boolean, result:'WOLF'|'OTHER'|'TIE', blind:boolean } ],
-   *   currentHoleIndex: 0
-   * }
-   */
   let game = null;
 
   function newGameTemplate() {
@@ -162,7 +155,6 @@
   // Rotation / Order helpers
   // -----------------------------
   function rotatedOrderForHole(holeIndex) {
-    // holeIndex is 0-based
     const n = game.players.length;
     const offset = holeIndex % n;
     const base = game.players.map(p => p.id);
@@ -172,116 +164,117 @@
     return base.slice(cut).concat(base.slice(0, cut));
   }
 
-  function wolfIdForHole(holeIndex) {
-    const order = rotatedOrderForHole(holeIndex);
-    return order[order.length - 1];
-  }
-
   function idToName(id) {
     return game.players.find(p => p.id === id)?.name ?? 'Unknown';
   }
 
   // -----------------------------
-  // Scoring Engine (recompute from scratch)
+  // Scoring Engine (Pot model, net transfers)
   // -----------------------------
   function computeScores(g) {
     const totals = Object.fromEntries(g.players.map(p => [p.id, 0]));
-    const perHole = []; // breakdown: {hole, mult, pushCount, desc}
+    const perHole = [];
 
-    let pushCount = 0; // number of consecutive pushed ties leading into current hole
+    let carryPerPlayer = 0;
 
     for (let i = 0; i < g.holeCount; i++) {
       const h = g.holes[i] ?? {};
+      const n = g.players.length;
+
       const order = (function () {
-        const n = g.players.length;
         const offset = i % n;
         const base = g.players.map(p => p.id);
-
-        // Right-rotation: last becomes first each hole
         const cut = (n - offset) % n;
         return base.slice(cut).concat(base.slice(0, cut));
       })();
 
       const wolfId = order[order.length - 1];
-      const others = order.slice(0, order.length - 1);
+      const others = order.slice(0, -1);
 
-      const baseMult = (g.options.pushTies ? (pushCount + 1) : 1);
-      const blindMult = (g.options.blindWolf && h.blind) ? 2 : 1;
-      const mult = baseMult * blindMult;
+      const isBlind = !!(g.options?.blindWolf && h.blind);
+      const baseWagerPerPlayer = isBlind ? 2 : 1;
 
-      const multUnits = mult * POINTS_UNIT;
-
-      // If no result yet, just record meta and continue
       if (!h.result) {
         perHole.push({
           hole: i + 1,
-          mult,
-          pushCount,
           desc: 'Not scored',
+          meta: { carryPerPlayer, baseWagerPerPlayer, isBlind },
         });
         continue;
       }
 
       if (h.result === 'TIE') {
+        if (g.options?.pushTies) carryPerPlayer += 1;
+
         perHole.push({
           hole: i + 1,
-          mult,
-          pushCount,
-          desc: 'Tie',
+          desc: g.options?.pushTies
+            ? (isBlind
+              ? `Tie — push +1/player (Blind extra refunded). Carry is now ${carryPerPlayer}/player.`
+              : `Tie — push +1/player. Carry is now ${carryPerPlayer}/player.`)
+            : 'Tie',
+          meta: { carryPerPlayer, baseWagerPerPlayer, isBlind },
         });
-        if (g.options.pushTies) pushCount += 1;
         continue;
       }
 
-      // Win/loss resets pushCount (for push-ties mode)
-      if (g.options.pushTies) pushCount = 0;
+      const wagerPerPlayer = (g.options?.pushTies ? carryPerPlayer : 0) + baseWagerPerPlayer;
+      const wagerUnits = wagerPerPlayer * POINTS_UNIT;
+
+      if (g.options?.pushTies) carryPerPlayer = 0;
 
       const isLone = !!h.loneWolf;
 
+      let winners = [];
+      let losers = [];
+
       if (isLone) {
-        const k = others.length; // 3 or 4
-        const swingUnits = k * 1 * multUnits; // wolf gains/loses k points (in units)
-        if (h.result === 'WOLF') {
-          totals[wolfId] += swingUnits;
-          for (const pid of others) totals[pid] -= 1 * multUnits;
-          perHole.push({ hole: i + 1, mult, pushCount: 0, desc: `Lone Wolf win (+${k} each)` });
-        } else {
-          totals[wolfId] -= swingUnits;
-          for (const pid of others) totals[pid] += 1 * multUnits;
-          perHole.push({ hole: i + 1, mult, pushCount: 0, desc: `Lone Wolf loss (-${k} each)` });
+        winners = (h.result === 'WOLF') ? [wolfId] : others;
+        losers = (h.result === 'WOLF') ? others : [wolfId];
+      } else {
+        const partnerId = h.partnerId;
+        if (!partnerId || partnerId === wolfId) {
+          perHole.push({
+            hole: i + 1,
+            desc: 'Invalid partner (not scored)',
+            meta: { carryPerPlayer: 0, baseWagerPerPlayer, isBlind },
+          });
+          continue;
         }
-        continue;
+
+        const wolfTeam = [wolfId, partnerId];
+        const otherTeam = order.filter(pid => !wolfTeam.includes(pid));
+
+        winners = (h.result === 'WOLF') ? wolfTeam : otherTeam;
+        losers = (h.result === 'WOLF') ? otherTeam : wolfTeam;
       }
 
-      // Team hole
-      const partnerId = h.partnerId;
-      if (!partnerId || partnerId === wolfId) {
-        // invalid / not chosen -> treat as not scored
-        perHole.push({ hole: i + 1, mult, pushCount: 0, desc: 'Invalid partner (not scored)' });
-        continue;
-      }
+      losers.forEach(pid => { totals[pid] -= wagerUnits; });
 
-      const wolfTeam = [wolfId, partnerId];
-      const otherTeam = order.filter(pid => !wolfTeam.includes(pid));
+      const potUnits = losers.length * wagerUnits;
 
-      const winners = (h.result === 'WOLF') ? wolfTeam : otherTeam;
-      const losers = (h.result === 'WOLF') ? otherTeam : wolfTeam;
-
-      // pot = losers.length points, each loser pays 1 point (times mult)
-      const potUnits = losers.length * 1 * multUnits;
-
-      // each winner receives pot / winners.length
       const shareUnits = Math.floor(potUnits / winners.length);
       const remainder = potUnits - (shareUnits * winners.length);
-
-      for (const pid of losers) totals[pid] -= 1 * multUnits;
 
       winners.forEach((pid, idx) => {
         totals[pid] += shareUnits + (idx === 0 ? remainder : 0);
       });
 
-      const winLabel = (h.result === 'WOLF') ? 'Wolf Team win' : 'Other Team win';
-      perHole.push({ hole: i + 1, mult, pushCount: 0, desc: `${winLabel} (pot ${losers.length})` });
+      const potPoints = potUnits / POINTS_UNIT;
+
+      const whoWon =
+        (h.result === 'WOLF')
+          ? (isLone ? 'Lone Wolf win' : 'Wolf Team win')
+          : (isLone ? 'Lone Wolf loss (others win)' : 'Other Team win');
+
+      const blindNote = isBlind ? ' (Blind)' : '';
+      const splitNote = `split ${winners.length} ways`;
+
+      perHole.push({
+        hole: i + 1,
+        desc: `${whoWon}${blindNote} — wager ${wagerPerPlayer}/player, net pot ${potPoints} (${splitNote})`,
+        meta: { carryPerPlayer: 0, baseWagerPerPlayer, isBlind },
+      });
     }
 
     return { totals, perHole };
@@ -362,6 +355,14 @@
     qsa('.pill', containerEl).forEach(btn => btn.classList.toggle('pill--active', !!matchFn(btn)));
   }
 
+  function setPillDisabled(containerEl, disabled) {
+    if (!containerEl) return;
+    qsa('.pill', containerEl).forEach(btn => {
+      btn.disabled = !!disabled;
+      btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+    });
+  }
+
   function renderGameScreen() {
     ensureHolesLength();
 
@@ -372,8 +373,7 @@
 
     const order = rotatedOrderForHole(i);
     const wolfId = order[order.length - 1];
-    const wolfName = idToName(wolfId);
-    $('holeMeta').textContent = `Wolf: ${wolfName}`;
+    $('holeMeta').textContent = `Wolf: ${idToName(wolfId)}`;
 
     // order list
     const ol = $('orderList');
@@ -394,12 +394,9 @@
 
     const hole = game.holes[i];
 
-    // blind wolf option visibility
+    // blind wolf option visibility (feature flag)
     const blindEnabled = !!game.options.blindWolf;
     $('blindWolfBlock')?.classList.toggle('hidden', !blindEnabled);
-
-    // blind wolf toggle
-    if ($('blindWolfToggle')) $('blindWolfToggle').checked = !!hole.blind;
 
     // partner buttons (exclude wolf)
     const pb = $('partnerButtons');
@@ -413,41 +410,97 @@
         btn.textContent = idToName(pid);
         btn.addEventListener('click', () => {
           const h = game.holes[game.currentHoleIndex];
+
+          // If blind or lone wolf, partner selection is not allowed
+          if (h.blind || h.loneWolf) return;
+
           h.partnerId = pid;
-          h.loneWolf = false;
-          if ($('loneWolfToggle')) $('loneWolfToggle').checked = false;
-          setPillActive(pb, (b) => b.dataset.pid === pid);
           saveGame();
+
+          setPillActive(pb, (b) => b.dataset.pid === pid);
           $('saveStatus').textContent = 'Saved.';
         });
         pb.appendChild(btn);
       });
-
-      // restore partner highlight
-      setPillActive(pb, (b) => b.dataset.pid === (hole.partnerId ?? ''));
     }
 
-    // lone wolf toggle
-    if ($('loneWolfToggle')) {
-      $('loneWolfToggle').checked = !!hole.loneWolf;
-      $('loneWolfToggle').onchange = (e) => {
+    // ---- Enforce rule: Blind Wolf implies Lone Wolf ----
+    // If blind is on, force loneWolf=true and partnerId=null
+    function enforceBlindImpliesLone() {
+      if (!blindEnabled) return;
+      if (!hole.blind) return;
+
+      if (!hole.loneWolf) hole.loneWolf = true;
+      if (hole.partnerId) hole.partnerId = null;
+    }
+
+    enforceBlindImpliesLone();
+
+    // Blind Wolf toggle
+    const blindToggle = $('blindWolfToggle');
+    if (blindToggle) {
+      blindToggle.checked = !!hole.blind;
+
+      blindToggle.onchange = (e) => {
         const h = game.holes[game.currentHoleIndex];
-        h.loneWolf = !!e.target.checked;
-        if (h.loneWolf) h.partnerId = null;
-        // update partner highlight
-        if (pb) setPillActive(pb, (b) => b.dataset.pid === (h.partnerId ?? ''));
+        h.blind = !!e.target.checked;
+
+        // Blind Wolf implies Lone Wolf
+        if (h.blind) {
+          h.loneWolf = true;
+          h.partnerId = null;
+          if ($('loneWolfToggle')) $('loneWolfToggle').checked = true;
+        }
+
+        // If blind turned off, keep lone wolf as-is (user can uncheck it if they want)
         saveGame();
-        $('saveStatus').textContent = 'Saved.';
+        renderGameScreen();
       };
     }
 
-    // Result selection as buttons (requires #resultButtons in index.html)
+    // Lone Wolf toggle
+    const loneToggle = $('loneWolfToggle');
+    if (loneToggle) {
+      loneToggle.checked = !!hole.loneWolf;
+
+      loneToggle.onchange = (e) => {
+        const h = game.holes[game.currentHoleIndex];
+        h.loneWolf = !!e.target.checked;
+
+        // If Lone Wolf is turned off, Blind must also turn off
+        if (!h.loneWolf && h.blind) {
+          h.blind = false;
+          if (blindToggle) blindToggle.checked = false;
+        }
+
+        // If Lone Wolf is turned on manually, clear partner
+        if (h.loneWolf) {
+          h.partnerId = null;
+        }
+
+        saveGame();
+        renderGameScreen();
+      };
+    }
+
+    // partner pills state
+    if (pb) {
+      // When lone or blind: disable partner selection and clear active
+      const disablePartners = !!hole.loneWolf || !!hole.blind;
+      setPillDisabled(pb, disablePartners);
+
+      // restore partner highlight (only relevant if not disabled)
+      setPillActive(pb, (b) => b.dataset.pid === (hole.partnerId ?? ''));
+      if (disablePartners) setPillActive(pb, () => false);
+    }
+
+    // Result selection buttons (optional)
     const rb = $('resultButtons');
     if (rb) {
       rb.innerHTML = '';
       const results = [
-        { value: 'WOLF', label: 'Wolf Team wins' },
-        { value: 'OTHER', label: 'Other Team wins' },
+        { value: 'WOLF', label: hole.loneWolf ? 'Wolf wins (Lone Wolf)' : 'Wolf Team wins' },
+        { value: 'OTHER', label: hole.loneWolf ? 'Others win' : 'Other Team wins' },
         { value: 'TIE', label: 'Tie' },
       ];
 
@@ -466,10 +519,9 @@
         rb.appendChild(btn);
       });
 
-      // restore highlight
       setPillActive(rb, (b) => b.dataset.value === (hole.result ?? ''));
     } else {
-      // Backward compatibility: if old radios exist, keep them functional
+      // Backward compatibility: radios
       qsa('input[name="result"]').forEach(r => {
         r.checked = (r.value === hole.result);
         r.onchange = () => {
@@ -480,7 +532,6 @@
       });
     }
 
-    // status
     $('saveStatus').textContent = hole.result ? 'Saved.' : 'Not yet scored.';
   }
 
@@ -523,7 +574,7 @@
       div.className = 'holeRow';
 
       const left = document.createElement('div');
-      left.innerHTML = `<b>Hole ${h.hole}</b> <span class="muted small">• x${h.mult}</span><div class="muted small">${escapeHtml(h.desc)}</div>`;
+      left.innerHTML = `<b>Hole ${h.hole}</b><div class="muted small">${escapeHtml(h.desc)}</div>`;
 
       const btn = document.createElement('button');
       btn.className = 'btn btn--ghost';
@@ -547,7 +598,6 @@
     if (!('serviceWorker' in navigator)) return;
 
     navigator.serviceWorker.register('./service-worker.js').then((reg) => {
-      // If a new SW is found, tell it to activate immediately
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
@@ -558,7 +608,6 @@
         });
       });
 
-      // When the controller changes, reload to use the new cached assets
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
       });
@@ -576,17 +625,20 @@
   function initSetupUI() {
     if (!game) game = newGameTemplate();
 
-    // Setup: player count buttons
     const pcb = $('playerCountBtns');
     if (pcb) {
       qsa('.segBtn', pcb).forEach(btn => {
         btn.addEventListener('click', () => {
           const pc = Number(btn.dataset.value);
 
+          const existingNames = qsa('.playerNameInput').length
+            ? buildPlayersFromInputs().map(p => p.name)
+            : (game.players?.map(p => p.name) ?? []);
+
           game.playerCount = pc;
           game.players = Array.from({ length: pc }).map((_, i) => ({
             id: `p${i + 1}`,
-            name: game.players?.[i]?.name ?? `Player ${i + 1}`,
+            name: existingNames[i] ?? `Player ${i + 1}`,
           }));
 
           setSegmentActive(pcb, pc);
@@ -596,17 +648,14 @@
         });
       });
 
-      // initial highlight
       setSegmentActive(pcb, game.playerCount);
     }
 
-    // initial holes buttons
     renderHoleOptionsButtons(game.playerCount, game.holeCount);
     renderPlayerInputs();
   }
 
   function bindUI() {
-    // Top bar
     $('btnRules')?.addEventListener('click', () => $('rulesDialog')?.showModal());
     $('btnCloseRules')?.addEventListener('click', () => $('rulesDialog')?.close());
 
@@ -616,7 +665,7 @@
         showScreen(SCREENS.load);
       }
     });
-    // Theme picker (top bar)
+
     const themeSelect = $('themeSelect');
     if (themeSelect) {
       const currentTheme = loadTheme();
@@ -628,12 +677,10 @@
       });
     }
 
-    // Load screen
     $('btnNewGame')?.addEventListener('click', () => {
       game = newGameTemplate();
       showScreen(SCREENS.setup);
 
-      // reset options UI
       if ($('optPushTies')) $('optPushTies').checked = false;
       if ($('optBlindWolf')) $('optBlindWolf').checked = false;
 
@@ -649,7 +696,6 @@
       renderGameScreen();
     });
 
-    // Setup screen
     $('btnBackToLoad')?.addEventListener('click', () => showScreen(SCREENS.load));
 
     $('btnRandomize')?.addEventListener('click', () => {
@@ -680,26 +726,31 @@
       game.currentHoleIndex = 0;
       game.finishedAt = null;
       ensureHolesLength();
+
+      // Enforce: if blindWolf option is OFF, clear any blind flags in holes
+      if (!game.options.blindWolf) {
+        game.holes.forEach(h => { h.blind = false; });
+      }
+
       saveGame();
 
       showScreen(SCREENS.game);
       renderGameScreen();
     });
 
-    // Game screen
     $('btnPrevHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex - 1));
     $('btnNextHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex + 1));
-
-    $('blindWolfToggle')?.addEventListener('change', (e) => {
-      game.holes[game.currentHoleIndex].blind = !!e.target.checked;
-      saveGame();
-      $('saveStatus').textContent = 'Saved.';
-    });
 
     $('btnSaveHole')?.addEventListener('click', () => {
       const h = game.holes[game.currentHoleIndex];
       const order = rotatedOrderForHole(game.currentHoleIndex);
       const wolfId = order[order.length - 1];
+
+      // Enforce rule again at save-time
+      if (h.blind) {
+        h.loneWolf = true;
+        h.partnerId = null;
+      }
 
       if (!h.result) {
         alert('Select a result (Wolf Team / Other Team / Tie).');
@@ -707,14 +758,19 @@
       }
 
       const isTie = h.result === 'TIE';
-      if (!isTie && !h.loneWolf) {
-        if (!h.partnerId) {
-          alert('Choose a Wolf partner, or select Lone Wolf.');
-          return;
-        }
-        if (h.partnerId === wolfId) {
-          alert('Partner cannot be the Wolf.');
-          return;
+      if (!isTie) {
+        // If not tie:
+        // - Blind implies lone (already enforced)
+        // - If not lone, must have partner
+        if (!h.loneWolf) {
+          if (!h.partnerId) {
+            alert('Choose a Wolf partner, or select Lone Wolf.');
+            return;
+          }
+          if (h.partnerId === wolfId) {
+            alert('Partner cannot be the Wolf.');
+            return;
+          }
         }
       }
 
@@ -731,7 +787,6 @@
       renderScoreboard();
     });
 
-    // Scoreboard
     $('btnBackToGame')?.addEventListener('click', () => {
       showScreen(SCREENS.game);
       renderGameScreen();
