@@ -170,12 +170,25 @@
 
   // -----------------------------
   // Scoring Engine (Pot model, net transfers)
+  // Adds: won/lost/net + per-hole per-player deltas (in setup order)
   // -----------------------------
   function computeScores(g) {
-    const totals = Object.fromEntries(g.players.map(p => [p.id, 0]));
-    const perHole = [];
+    const playerIds = g.players.map(p => p.id);
 
+    const totals = Object.fromEntries(playerIds.map(pid => [pid, 0]));     // net
+    const won = Object.fromEntries(playerIds.map(pid => [pid, 0]));        // credits received
+    const lost = Object.fromEntries(playerIds.map(pid => [pid, 0]));       // debits paid (positive magnitude)
+
+    const perHole = [];
     let carryPerPlayer = 0;
+
+    const applyDelta = (deltaByPlayer, pid, deltaUnits) => {
+      if (!deltaUnits) return;
+      deltaByPlayer[pid] = (deltaByPlayer[pid] ?? 0) + deltaUnits;
+      totals[pid] += deltaUnits;
+      if (deltaUnits > 0) won[pid] += deltaUnits;
+      if (deltaUnits < 0) lost[pid] += Math.abs(deltaUnits);
+    };
 
     for (let i = 0; i < g.holeCount; i++) {
       const h = g.holes[i] ?? {};
@@ -194,50 +207,62 @@
       const isBlind = !!(g.options?.blindWolf && h.blind);
       const baseWagerPerPlayer = isBlind ? 2 : 1;
 
+      // per-hole delta map (always include keys so rendering order is stable)
+      const deltaByPlayer = Object.fromEntries(playerIds.map(pid => [pid, 0]));
+
+      // Not scored
       if (!h.result) {
         perHole.push({
           hole: i + 1,
-          desc: 'Not scored',
-          meta: { carryPerPlayer, baseWagerPerPlayer, isBlind },
+          status: 'NOT_SCORED',
+          statusLabel: 'Not scored',
+          deltaByPlayer, // all zeros
         });
         continue;
       }
 
+      // Tie
       if (h.result === 'TIE') {
+        // Push logic: tie pushes only +1/player (blind extra refunded)
         if (g.options?.pushTies) carryPerPlayer += 1;
 
         perHole.push({
           hole: i + 1,
-          desc: g.options?.pushTies
-            ? (isBlind
-              ? `Tie — push +1/player (Blind extra refunded). Carry is now ${carryPerPlayer}/player.`
-              : `Tie — push +1/player. Carry is now ${carryPerPlayer}/player.`)
-            : 'Tie',
-          meta: { carryPerPlayer, baseWagerPerPlayer, isBlind },
+          status: 'TIE',
+          statusLabel: 'Tie',
+          deltaByPlayer, // all zeros
         });
         continue;
       }
 
+      // Win: compute per-player wager for THIS hole
       const wagerPerPlayer = (g.options?.pushTies ? carryPerPlayer : 0) + baseWagerPerPlayer;
       const wagerUnits = wagerPerPlayer * POINTS_UNIT;
 
+      // Win resets carry
       if (g.options?.pushTies) carryPerPlayer = 0;
 
       const isLone = !!h.loneWolf;
 
       let winners = [];
       let losers = [];
+      let statusLabel = '';
 
       if (isLone) {
-        winners = (h.result === 'WOLF') ? [wolfId] : others;
-        losers = (h.result === 'WOLF') ? others : [wolfId];
+        // Lone Wolf: Wolf vs all others
+        const wolfWon = (h.result === 'WOLF');
+        winners = wolfWon ? [wolfId] : others;
+        losers = wolfWon ? others : [wolfId];
+        statusLabel = wolfWon ? 'Lone Wolf wins' : 'Little Piggie win';
       } else {
+        // Team hole: Wolf + partner vs the rest
         const partnerId = h.partnerId;
         if (!partnerId || partnerId === wolfId) {
           perHole.push({
             hole: i + 1,
-            desc: 'Invalid partner (not scored)',
-            meta: { carryPerPlayer: 0, baseWagerPerPlayer, isBlind },
+            status: 'NOT_SCORED',
+            statusLabel: 'Not scored',
+            deltaByPlayer, // all zeros
           });
           continue;
         }
@@ -245,39 +270,43 @@
         const wolfTeam = [wolfId, partnerId];
         const otherTeam = order.filter(pid => !wolfTeam.includes(pid));
 
-        winners = (h.result === 'WOLF') ? wolfTeam : otherTeam;
-        losers = (h.result === 'WOLF') ? otherTeam : wolfTeam;
+        const wolfTeamWon = (h.result === 'WOLF');
+        winners = wolfTeamWon ? wolfTeam : otherTeam;
+        losers = wolfTeamWon ? otherTeam : wolfTeam;
+
+        statusLabel = wolfTeamWon ? 'Wolf Pack wins' : 'Little Piggies win';
       }
 
-      losers.forEach(pid => { totals[pid] -= wagerUnits; });
+      // Everyone on losing side pays wagerPerPlayer into pot (represented as net transfers)
+      losers.forEach(pid => applyDelta(deltaByPlayer, pid, -wagerUnits));
 
+      // Pot is losers.length * wagerUnits, split across winners
       const potUnits = losers.length * wagerUnits;
 
       const shareUnits = Math.floor(potUnits / winners.length);
       const remainder = potUnits - (shareUnits * winners.length);
 
       winners.forEach((pid, idx) => {
-        totals[pid] += shareUnits + (idx === 0 ? remainder : 0);
+        applyDelta(deltaByPlayer, pid, shareUnits + (idx === 0 ? remainder : 0));
       });
-
-      const potPoints = potUnits / POINTS_UNIT;
-
-      const whoWon =
-        (h.result === 'WOLF')
-          ? (isLone ? 'Lone Wolf win' : 'Wolf Team win')
-          : (isLone ? 'Lone Wolf loss (others win)' : 'Other Team win');
-
-      const blindNote = isBlind ? ' (Blind)' : '';
-      const splitNote = `split ${winners.length} ways`;
 
       perHole.push({
         hole: i + 1,
-        desc: `${whoWon}${blindNote} — wager ${wagerPerPlayer}/player, net pot ${potPoints} (${splitNote})`,
-        meta: { carryPerPlayer: 0, baseWagerPerPlayer, isBlind },
+        status: (h.result === 'WOLF' ? 'WOLF_WIN' : 'OTHER_WIN'),
+        statusLabel,
+        deltaByPlayer,
       });
     }
 
-    return { totals, perHole };
+    const holesScoredCount = perHole.filter(h => h.status !== 'NOT_SCORED').length;
+
+    return {
+      totals,
+      won,
+      lost,
+      holesScoredCount,
+      perHole,
+    };
   }
 
   // -----------------------------
@@ -504,8 +533,8 @@
     if (rb) {
       rb.innerHTML = '';
       const results = [
-        { value: 'WOLF', label: hole.loneWolf ? 'Wolf wins (Lone Wolf)' : 'Wolf Team wins' },
-        { value: 'OTHER', label: hole.loneWolf ? 'Others win' : 'Other Team wins' },
+        { value: 'WOLF', label: hole.loneWolf ? 'Lone Wolf wins' : 'Wolf Pack wins' },
+        { value: 'OTHER', label: hole.loneWolf ? 'Little Piggies win' : 'Little Piggies win' },
         { value: 'TIE', label: 'Tie' },
       ];
 
@@ -556,25 +585,47 @@
   // -----------------------------
   function renderScoreboard() {
     ensureHolesLength();
-    const { totals, perHole } = computeScores(game);
+    const { totals, won, lost, holesScoredCount, perHole } = computeScores(game);
 
-    const rows = game.players
-      .map(p => ({ id: p.id, name: p.name, units: totals[p.id] ?? 0 }))
-      .sort((a, b) => b.units - a.units);
+    // --- Totals card: "# holes scored" + table headers Player/Won/Lost/Net ---
+    const rows = game.players.map(p => ({
+      id: p.id,
+      name: p.name,
+      wonUnits: won[p.id] ?? 0,
+      lostUnits: lost[p.id] ?? 0,
+      netUnits: totals[p.id] ?? 0,
+    }));
 
     const tableHtml = `
+      <div class="row row--between row--center" style="margin-bottom:10px">
+        <h2 style="margin:0">${holesScoredCount} holes scored</h2>
+      </div>
+
       <table class="table">
         <thead>
-          <tr><th>Player</th><th>Points</th></tr>
+          <tr>
+            <th>Player</th>
+            <th>Won</th>
+            <th>Lost</th>
+            <th>Net</th>
+          </tr>
         </thead>
         <tbody>
-          ${rows.map(r => `<tr><td>${escapeHtml(r.name)}</td><td>${escapeHtml(formatPoints(r.units))}</td></tr>`).join('')}
+          ${rows.map(r => `
+            <tr>
+              <td>${escapeHtml(r.name)}</td>
+              <td>${escapeHtml(formatPoints(r.wonUnits))}</td>
+              <td>${escapeHtml(formatPoints(r.lostUnits))}</td>
+              <td>${escapeHtml(formatPoints(r.netUnits))}</td>
+            </tr>
+          `).join('')}
         </tbody>
       </table>
-      <div class="hint">Points may display as fractions in 5-player games (exact scoring, no rounding).</div>
     `;
+
     $('scoreTableWrap').innerHTML = tableHtml;
 
+    // --- Holes list ---
     const list = $('holesList');
     if (!list) return;
 
@@ -584,7 +635,25 @@
       div.className = 'holeRow';
 
       const left = document.createElement('div');
-      left.innerHTML = `<b>Hole ${h.hole}</b><div class="muted small">${escapeHtml(h.desc)}</div>`;
+
+      // Title line: "Hole # (status)"
+      const titleLine = `<b>Hole ${h.hole}</b> <span class="muted small">(${escapeHtml(h.statusLabel)})</span>`;
+
+      // Delta line: only show if hole is scored AND not tie/not scored
+      let deltaLine = '';
+      const showDeltas = (h.status !== 'NOT_SCORED' && h.status !== 'TIE');
+
+      if (showDeltas) {
+        const parts = game.players.map(p => {
+          const u = h.deltaByPlayer?.[p.id] ?? 0;
+          const sign = u > 0 ? '+' : (u < 0 ? '-' : '+');
+          const txt = (u === 0) ? '0' : formatPoints(Math.abs(u));
+          return `${escapeHtml(p.name)} ${sign}${escapeHtml(txt)}`;
+        });
+        deltaLine = `<div class="muted small">${parts.join(', ')}</div>`;
+      }
+
+      left.innerHTML = `${titleLine}${deltaLine}`;
 
       const btn = document.createElement('button');
       btn.className = 'btn btn--ghost';
@@ -763,7 +832,7 @@
       }
 
       if (!h.result) {
-        alert('Select a result (Wolf Team / Other Team / Tie).');
+        alert('Select a result (Wolf Pack / Little Piggies / Tie).');
         return;
       }
 

@@ -179,12 +179,14 @@
           <div id="holesList" class="holesList"></div>
         </div>
 
-        <div class="row row--between">
+        <div class="gameFooterBar gameFooter">
           <button id="btnFinishGame" class="btn btn--primary" type="button">Finish Game</button>
+          <div class="footerMid">
+            <div id="finishStatus" class="muted small"></div>
+          </div>
           <button id="btnNewFromScoreboard" class="btn btn--danger" type="button">New Game</button>
         </div>
 
-        <div id="finishStatus" class="muted small"></div>
       </div>
     </section>
 
@@ -192,7 +194,7 @@
     <dialog id="rulesDialog" class="modal">
       <div class="modal__inner">
         <div class="row row--between row--center">
-          <h2>Rules (Wolf Disc Golf)</h2>
+          <h2 class="rules">Rules (Wolf Disc Golf)</h2>
           <button id="btnCloseRules" class="btn btn--ghost" type="button">Close</button>
         </div>
 
