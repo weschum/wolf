@@ -369,14 +369,21 @@
     const i = game.currentHoleIndex;
     const holeNum = i + 1;
 
+    const hole = game.holes[i];
+
     $('holeTitle').textContent = `Hole ${holeNum} of ${game.holeCount}`;
 
     const order = rotatedOrderForHole(i);
     const wolfId = order[order.length - 1];
     $('holeMeta').textContent = `Wolf: ${idToName(wolfId)}`;
-    $('holeTitleBottom').textContent = `Hole ${holeNum} of ${game.holeCount}`;
-    $('holeMetaBottom').textContent = `Wolf: ${idToName(wolfId)}`;
 
+    // Bottom hole info (centered between Scores + Save)
+    if ($('holeTitleBottom')) {
+      $('holeTitleBottom').textContent = `Hole ${holeNum} of ${game.holeCount}`;
+    }
+    if ($('holeMetaBottom')) {
+      $('holeMetaBottom').textContent = (hole?.result ? 'Saved.' : 'Not yet scored.');
+    }
 
     // order list
     const ol = $('orderList');
@@ -394,8 +401,6 @@
         ol.appendChild(li);
       });
     }
-
-    const hole = game.holes[i];
 
     // blind wolf option visibility (feature flag)
     const blindEnabled = !!game.options.blindWolf;
@@ -421,14 +426,15 @@
           saveGame();
 
           setPillActive(pb, (b) => b.dataset.pid === pid);
-          $('saveStatus').textContent = 'Saved.';
+
+          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
+          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
         });
         pb.appendChild(btn);
       });
     }
 
     // ---- Enforce rule: Blind Wolf implies Lone Wolf ----
-    // If blind is on, force loneWolf=true and partnerId=null
     function enforceBlindImpliesLone() {
       if (!blindEnabled) return;
       if (!hole.blind) return;
@@ -436,7 +442,6 @@
       if (!hole.loneWolf) hole.loneWolf = true;
       if (hole.partnerId) hole.partnerId = null;
     }
-
     enforceBlindImpliesLone();
 
     // Blind Wolf toggle
@@ -455,7 +460,6 @@
           if ($('loneWolfToggle')) $('loneWolfToggle').checked = true;
         }
 
-        // If blind turned off, keep lone wolf as-is (user can uncheck it if they want)
         saveGame();
         renderGameScreen();
       };
@@ -488,11 +492,9 @@
 
     // partner pills state
     if (pb) {
-      // When lone or blind: disable partner selection and clear active
       const disablePartners = !!hole.loneWolf || !!hole.blind;
       setPillDisabled(pb, disablePartners);
 
-      // restore partner highlight (only relevant if not disabled)
       setPillActive(pb, (b) => b.dataset.pid === (hole.partnerId ?? ''));
       if (disablePartners) setPillActive(pb, () => false);
     }
@@ -514,10 +516,14 @@
         btn.dataset.value = r.value;
         btn.textContent = r.label;
         btn.addEventListener('click', () => {
-          game.holes[game.currentHoleIndex].result = r.value;
+          const h = game.holes[game.currentHoleIndex];
+          h.result = r.value;
+
           setPillActive(rb, (b) => b.dataset.value === r.value);
           saveGame();
-          $('saveStatus').textContent = 'Saved.';
+
+          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
+          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
         });
         rb.appendChild(btn);
       });
@@ -528,14 +534,15 @@
       qsa('input[name="result"]').forEach(r => {
         r.checked = (r.value === hole.result);
         r.onchange = () => {
-          game.holes[game.currentHoleIndex].result = r.value;
+          const h = game.holes[game.currentHoleIndex];
+          h.result = r.value;
           saveGame();
-          $('saveStatus').textContent = 'Saved.';
+
+          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
+          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
         };
       });
     }
-
-    $('saveStatus').textContent = hole.result ? 'Saved.' : 'Not yet scored.';
   }
 
   function goToHole(index) {
@@ -778,10 +785,15 @@
       }
 
       saveGame();
-      $('saveStatus').textContent = 'Saved.';
 
+      if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
+      if ($('holeMetaBottom')) $('holeMetaBottom').textContent = 'Saved.';
+
+      // auto-advance if not last hole
       if (game.currentHoleIndex < game.holeCount - 1) {
         goToHole(game.currentHoleIndex + 1);
+      } else {
+        renderGameScreen(); // last hole: just refresh UI
       }
     });
 

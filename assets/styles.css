@@ -417,7 +417,8 @@ h2{margin:0 0 10px 0;font-size:16px}
 }
 
 .holeFooterTitle{
-  font-size:12px;
+  padding: 6px;
+  font-size:16px;
   font-weight:900;
 }
 
