@@ -676,19 +676,48 @@
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
 
+    const banner = $('updateBanner');
+    const btn = $('btnUpdateNow');
+
+    function showUpdateBanner(reg) {
+      if (!banner || !btn) return;
+      banner.classList.remove('hidden');
+
+      btn.onclick = async () => {
+        // ask the waiting SW to activate
+        if (reg?.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+      };
+    }
+
     navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+      // If there's already a waiting SW (rare but happens), show banner immediately
+      if (reg.waiting) showUpdateBanner(reg);
+
+      // When a new SW is found
       reg.addEventListener('updatefound', () => {
         const sw = reg.installing;
         if (!sw) return;
+
         sw.addEventListener('statechange', () => {
+          // installed + controller exists => update available
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            sw.postMessage('SKIP_WAITING');
+            showUpdateBanner(reg);
           }
         });
       });
 
+      // When the new SW takes control, reload so we use the new cache
       navigator.serviceWorker.addEventListener('controllerchange', () => {
         window.location.reload();
+      });
+
+      // Optional: check for updates when app becomes visible again (nice on phones)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          reg.update().catch(() => {});
+        }
       });
     }).catch(() => {});
   }

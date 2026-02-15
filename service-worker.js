@@ -3,7 +3,7 @@
 */
 'use strict';
 
-const SW_VERSION = 'v4';
+const SW_VERSION = 'v4.1';
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
 
@@ -42,7 +42,10 @@ self.addEventListener('activate', (event) => {
 
 // Allow the page to tell the SW to activate immediately
 self.addEventListener('message', (event) => {
-  if (event?.data === 'SKIP_WAITING') self.skipWaiting();
+  const msg = event?.data;
+  if (msg === 'SKIP_WAITING' || msg?.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 function isNavigationRequest(request) {

@@ -305,6 +305,26 @@ h2{margin:0 0 10px 0;font-size:16px}
 .row--between{justify-content:space-between}
 .row--center{align-items:center}
 
+/* PWA update banner (shows when a new SW is waiting) */
+.updateBanner{
+  position: sticky;
+  top: 64px; /* under topbar */
+  z-index: 30;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:10px;
+
+  margin: 0 auto;
+  max-width: 860px;
+  padding: 10px 12px;
+
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+
 /* =========================================================
    Setup Screen: Segmented selectors (players / holes)
    ========================================================= */
