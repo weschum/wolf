@@ -24,7 +24,6 @@ const PRECACHE_URLS = [
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_STATIC).then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting())
   );
 });
 
@@ -54,9 +53,7 @@ function isNavigationRequest(request) {
 }
 
 function isVersionedAsset(url) {
-  // You can broaden this later if you version more files
-  return url.pathname.includes('/assets/') &&
-    (url.pathname.includes('.v') || url.pathname.includes('icon-'));
+  return url.pathname.includes('/assets/') || url.pathname.includes('/icons/');
 }
 
 self.addEventListener('fetch', (event) => {
