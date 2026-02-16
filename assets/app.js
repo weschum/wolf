@@ -672,6 +672,7 @@
 
   // -----------------------------
   // PWA / Service Worker
+  // (iOS PWA: force update checks + short polling for "waiting")
   // -----------------------------
   function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
@@ -679,21 +680,52 @@
     const banner = $('updateBanner');
     const btn = $('btnUpdateNow');
 
+    function hideUpdateBanner() {
+      if (!banner) return;
+      banner.classList.add('hidden');
+    }
+
     function showUpdateBanner(reg) {
       if (!banner || !btn) return;
+
       banner.classList.remove('hidden');
 
       btn.onclick = async () => {
-        // ask the waiting SW to activate
+        // Ask the waiting SW to activate immediately
         if (reg?.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } else {
+          // Safety: if somehow no waiting SW, re-check and try again
+          const r2 = await navigator.serviceWorker.getRegistration();
+          if (r2?.waiting) r2.waiting.postMessage({ type: 'SKIP_WAITING' });
         }
       };
     }
 
     navigator.serviceWorker.register('./service-worker.js').then((reg) => {
-      // If there's already a waiting SW (rare but happens), show banner immediately
+      // If there's already a waiting SW, show immediately
       if (reg.waiting) showUpdateBanner(reg);
+
+      // iOS PWA often won't check updates aggressively — nudge it on launch
+      setTimeout(() => {
+        reg.update().catch(() => {});
+      }, 1500);
+
+      // Poll briefly after launch for "waiting" to appear (iOS can be delayed)
+      let tries = 0;
+      const poll = setInterval(async () => {
+        tries += 1;
+        try {
+          const r = await navigator.serviceWorker.getRegistration();
+          if (r?.waiting) {
+            showUpdateBanner(r);
+            clearInterval(poll);
+          }
+        } catch {
+          // ignore
+        }
+        if (tries >= 8) clearInterval(poll); // ~16s max
+      }, 2000);
 
       // When a new SW is found
       reg.addEventListener('updatefound', () => {
@@ -703,17 +735,24 @@
         sw.addEventListener('statechange', () => {
           // installed + controller exists => update available
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            showUpdateBanner(reg);
+            // re-read registration to ensure waiting is set (more reliable than reg.waiting)
+            navigator.serviceWorker.getRegistration().then((r) => {
+              if (r?.waiting) showUpdateBanner(r);
+            }).catch(() => {
+              // fallback: show anyway
+              showUpdateBanner(reg);
+            });
           }
         });
       });
 
       // When the new SW takes control, reload so we use the new cache
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        hideUpdateBanner();
         window.location.reload();
       });
 
-      // Optional: check for updates when app becomes visible again (nice on phones)
+      // Check for updates when app becomes visible again (helps on phones / iOS PWA)
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           reg.update().catch(() => {});
@@ -802,6 +841,44 @@
       ensureHolesLength();
       showScreen(SCREENS.game);
       renderGameScreen();
+    });
+
+    // ✅ Start screen only: manual "Check for update" (safe for iOS PWA)
+    $('btnCheckUpdate')?.addEventListener('click', async () => {
+      try {
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          alert('Offline cache is not enabled (no service worker registered).');
+          return;
+        }
+
+        // If a saved game exists, confirm before applying updates (reload)
+        const hasSavedGame = !!localStorage.getItem(STORAGE_KEY);
+        if (hasSavedGame) {
+          const ok = confirm(
+            'A game is saved on this device.\n\nChecking for updates is safe, but applying an update will reload the app.\n\nContinue?'
+          );
+          if (!ok) return;
+        }
+
+        // Force an update check
+        await reg.update();
+
+        // Re-read registration to see if an update is waiting
+        const r2 = await navigator.serviceWorker.getRegistration();
+        if (r2?.waiting) {
+          const apply = confirm('Update found. Apply now? (The app will reload)');
+          if (!apply) return;
+
+          r2.waiting.postMessage({ type: 'SKIP_WAITING' });
+          // controllerchange listener will reload
+          return;
+        }
+
+        alert('No update found.');
+      } catch {
+        alert('Update check failed. Try again when you have a connection.');
+      }
     });
 
     $('btnBackToLoad')?.addEventListener('click', () => showScreen(SCREENS.load));
