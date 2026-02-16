@@ -843,10 +843,27 @@
       renderGameScreen();
     });
 
-    // ✅ Start screen only: manual "Check for update" (safe for iOS PWA)
+    // ✅ Start screen only: manual "Check for update" (iOS-friendly + user feedback)
     $('btnCheckUpdate')?.addEventListener('click', async () => {
+      const btn = $('btnCheckUpdate');
+      const originalLabel = btn?.textContent || 'Check for update';
+
+      const setBusy = (busy) => {
+        if (!btn) return;
+        btn.disabled = !!busy;
+        btn.textContent = busy ? 'Checking…' : originalLabel;
+      };
+
       try {
-        const reg = await navigator.serviceWorker.getRegistration();
+        setBusy(true);
+
+        // Find the SW registration (getRegistration is usually enough, but iOS can be weird)
+        let reg = await navigator.serviceWorker.getRegistration();
+        if (!reg) {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          reg = regs?.[0] || null;
+        }
+
         if (!reg) {
           alert('Offline cache is not enabled (no service worker registered).');
           return;
@@ -864,20 +881,26 @@
         // Force an update check
         await reg.update();
 
-        // Re-read registration to see if an update is waiting
-        const r2 = await navigator.serviceWorker.getRegistration();
-        if (r2?.waiting) {
+        // iOS often needs a moment before "waiting" appears
+        await new Promise(r => setTimeout(r, 1200));
+
+        // Re-read registration to see if update is waiting
+        const reg2 = await navigator.serviceWorker.getRegistration() || reg;
+
+        if (reg2?.waiting) {
           const apply = confirm('Update found. Apply now? (The app will reload)');
           if (!apply) return;
 
-          r2.waiting.postMessage({ type: 'SKIP_WAITING' });
+          reg2.waiting.postMessage({ type: 'SKIP_WAITING' });
           // controllerchange listener will reload
           return;
         }
 
         alert('No update found.');
-      } catch {
+      } catch (e) {
         alert('Update check failed. Try again when you have a connection.');
+      } finally {
+        setBusy(false);
       }
     });
 
