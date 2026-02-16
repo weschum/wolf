@@ -226,7 +226,7 @@ a{color:var(--primary)}
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:14px 16px;
+  padding:12px 14px;
   border-bottom:1px solid var(--border);
 
   /* Sticky app header */
@@ -273,7 +273,7 @@ a{color:var(--primary)}
 
 
 /* ---------- Layout Containers ---------- */
-.container{max-width:860px;margin:0 auto;padding:16px}
+.container{max-width:860px;margin:0 auto;padding:0 12px}
 .screen{padding:12px 0}
 .hidden{display:none!important}
 
@@ -282,12 +282,12 @@ a{color:var(--primary)}
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
-  padding:16px;
+  padding:10px;
   box-shadow: 0 12px 30px rgba(0,0,0,.25);
 }
 .card--inset{
   background:var(--card2);
-  margin-top:12px;
+  margin-top:8px;
 }
 
 /* ---------- Typography Helpers ---------- */
@@ -408,7 +408,7 @@ h2{margin:0 0 10px 0;font-size:16px}
 /* Setup: player input boxes taller / easier to tap */
 .playerNameInput{
   width:100%;
-  padding:12px 12px;
+  padding:10px 12px;
   border-radius:12px;
   border:1px solid var(--border);
   background: var(--card);
@@ -420,8 +420,8 @@ h2{margin:0 0 10px 0;font-size:16px}
 .setupPlayersHeader{ margin-bottom:10px; }
 
 /* Footer spacing so buttons don't crowd the Options card */
-.setupFooter{ margin-top:16px; }
-.gameFooter{ margin-top:16px; }
+.setupFooter{ margin:16px 0px 4px; }
+.gameFooter{ margin:16px 0px 4px; }
 
 /* Bottom bar on game screen: scores + (hole info) + save */
 .gameFooterBar{
@@ -437,7 +437,7 @@ h2{margin:0 0 10px 0;font-size:16px}
 }
 
 .holeFooterTitle{
-  padding: 6px;
+  padding: 4px;
   font-size:16px;
   font-weight:900;
 }
@@ -468,16 +468,16 @@ h2{margin:0 0 10px 0;font-size:16px}
 .orderList{margin:0;padding-left:18px}
 
 /* Reduced vertical padding to minimize scrolling */
-.orderList li{padding:2px 0}
+.orderList li{padding:4px 0}
 
 .tag{
   display:inline-block;
-  margin-left:8px;
-  font-size:11px;
-  color:#ffffff; /* always white for clarity */
+  margin-left:12px;
+  font-size:14px;
+  color:var(--card2); /* appears as cutout */
   background:var(--primary);
-  padding:2px 8px;
-  border-radius:999px;
+  padding:0 8px;
+  border-radius:2px;
   font-weight:900;
 }
 
@@ -498,7 +498,7 @@ h2{margin:0 0 10px 0;font-size:16px}
   background:var(--surface);
   color:var(--text);
   padding:10px;
-  border-radius:999px;
+  border-radius:12px;
   font-weight:800;
   cursor:pointer;
   text-align:center;
