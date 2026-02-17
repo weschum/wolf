@@ -3,7 +3,7 @@
 */
 'use strict';
 
-const SW_VERSION = 'v6.5';
+const SW_VERSION = 'v2.17.0';
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
 
@@ -42,8 +42,16 @@ self.addEventListener('activate', (event) => {
 // Allow the page to tell the SW to activate immediately
 self.addEventListener('message', (event) => {
   const msg = event?.data;
+
   if (msg === 'SKIP_WAITING' || msg?.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+
+  if (msg === 'GET_VERSION' || msg?.type === 'GET_VERSION') {
+    event.source?.postMessage({
+      type: 'VERSION',
+      version: SW_VERSION
+    });
   }
 });
 

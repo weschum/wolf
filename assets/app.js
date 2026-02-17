@@ -675,11 +675,11 @@
   // (iOS PWA: force update checks + short polling for "waiting")
   // -----------------------------
   function registerServiceWorker() {
-    const versionEl = $('appVersion');
     if (!('serviceWorker' in navigator)) return;
 
     const banner = $('updateBanner');
     const btn = $('btnUpdateNow');
+    const versionEl = $('appVersion');
 
     function hideUpdateBanner() {
       if (!banner) return;
@@ -692,36 +692,52 @@
       banner.classList.remove('hidden');
 
       btn.onclick = async () => {
-        // Ask the waiting SW to activate immediately
         if (reg?.waiting) {
           reg.waiting.postMessage({ type: 'SKIP_WAITING' });
         } else {
-          // Safety: if somehow no waiting SW, re-check and try again
           const r2 = await navigator.serviceWorker.getRegistration();
-          if (r2?.waiting) r2.waiting.postMessage({ type: 'SKIP_WAITING' });
+          if (r2?.waiting) {
+            r2.waiting.postMessage({ type: 'SKIP_WAITING' });
+          }
         }
       };
     }
 
-    navigator.serviceWorker.register('./service-worker.js').then((reg) => {
-      // Extract version from service worker script URL
-      if (versionEl) {
-        const swUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL;
-        if (swUrl) {
-          const match = swUrl.match(/v[\d.]+/);
-          if (match) versionEl.textContent = match[0];
-        }
+    // ---- Version display via SW messaging ----
+    function requestSwVersion() {
+      if (!versionEl) return;
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' });
       }
+    }
 
-      // If there's already a waiting SW, show immediately
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data?.type === 'VERSION' && versionEl) {
+        versionEl.textContent = event.data.version;
+      }
+    });
+
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      hideUpdateBanner();
+      requestSwVersion();
+      window.location.reload();
+    });
+
+    // ---- Register ----
+    navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+
+      // Ask for version immediately
+      requestSwVersion();
+
+      // If already waiting (rare but possible)
       if (reg.waiting) showUpdateBanner(reg);
 
-      // iOS PWA often won't check updates aggressively — nudge it on launch
+      // iOS PWA often doesn't check aggressively — nudge it shortly after launch
       setTimeout(() => {
         reg.update().catch(() => {});
       }, 1500);
 
-      // Poll briefly after launch for "waiting" to appear (iOS can be delayed)
+      // Poll briefly after launch for waiting SW (iOS delay workaround)
       let tries = 0;
       const poll = setInterval(async () => {
         tries += 1;
@@ -731,9 +747,7 @@
             showUpdateBanner(r);
             clearInterval(poll);
           }
-        } catch {
-          // ignore
-        }
+        } catch {}
         if (tries >= 8) clearInterval(poll); // ~16s max
       }, 2000);
 
@@ -743,31 +757,23 @@
         if (!sw) return;
 
         sw.addEventListener('statechange', () => {
-          // installed + controller exists => update available
           if (sw.state === 'installed' && navigator.serviceWorker.controller) {
-            // re-read registration to ensure waiting is set (more reliable than reg.waiting)
             navigator.serviceWorker.getRegistration().then((r) => {
               if (r?.waiting) showUpdateBanner(r);
             }).catch(() => {
-              // fallback: show anyway
               showUpdateBanner(reg);
             });
           }
         });
       });
 
-      // When the new SW takes control, reload so we use the new cache
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        hideUpdateBanner();
-        window.location.reload();
-      });
-
-      // Check for updates when app becomes visible again (helps on phones / iOS PWA)
+      // Re-check when app becomes visible again (helps on iOS PWA)
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
           reg.update().catch(() => {});
         }
       });
+
     }).catch(() => {});
   }
 
