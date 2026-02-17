@@ -675,6 +675,7 @@
   // (iOS PWA: force update checks + short polling for "waiting")
   // -----------------------------
   function registerServiceWorker() {
+    const versionEl = $('appVersion');
     if (!('serviceWorker' in navigator)) return;
 
     const banner = $('updateBanner');
@@ -703,6 +704,15 @@
     }
 
     navigator.serviceWorker.register('./service-worker.js').then((reg) => {
+      // Extract version from service worker script URL
+      if (versionEl) {
+        const swUrl = reg.active?.scriptURL || reg.installing?.scriptURL || reg.waiting?.scriptURL;
+        if (swUrl) {
+          const match = swUrl.match(/v[\d.]+/);
+          if (match) versionEl.textContent = match[0];
+        }
+      }
+
       // If there's already a waiting SW, show immediately
       if (reg.waiting) showUpdateBanner(reg);
 
