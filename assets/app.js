@@ -692,28 +692,36 @@
       banner.classList.remove('hidden');
 
       btn.onclick = async () => {
-        if (reg?.waiting) {
-          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        } else {
-          const r2 = await navigator.serviceWorker.getRegistration();
-          if (r2?.waiting) {
-            r2.waiting.postMessage({ type: 'SKIP_WAITING' });
-          }
-        }
+        try {
+          const r = reg || await navigator.serviceWorker.getRegistration();
+          if (r?.waiting) r.waiting.postMessage({ type: 'SKIP_WAITING' });
+        } catch {}
       };
     }
 
     // ---- Version display via SW messaging ----
-    function requestSwVersion() {
+    async function requestSwVersion() {
       if (!versionEl) return;
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' });
-      }
+
+      try {
+        // Preferred: controller (when already controlled)
+        if (navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({ type: 'GET_VERSION' });
+          return;
+        }
+
+        // First-load / not-yet-controlled: message the active worker directly
+        const reg = await navigator.serviceWorker.getRegistration();
+        if (reg?.active) {
+          reg.active.postMessage({ type: 'GET_VERSION' });
+        }
+      } catch {}
     }
 
     navigator.serviceWorker.addEventListener('message', (event) => {
       if (event.data?.type === 'VERSION' && versionEl) {
-        versionEl.textContent = event.data.version;
+        // SW sends "v2.17.2" already
+        versionEl.textContent = ` ${event.data.version}`;
       }
     });
 
@@ -725,8 +733,7 @@
 
     // ---- Register ----
     navigator.serviceWorker.register('./service-worker.js').then((reg) => {
-
-      // Ask for version immediately
+      // Ask for version immediately (works even on first-load now)
       requestSwVersion();
 
       // If already waiting (rare but possible)

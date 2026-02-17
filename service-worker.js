@@ -3,7 +3,7 @@
 */
 'use strict';
 
-const SW_VERSION = 'v2.17.2';
+const SW_VERSION = 'v2.17.3';
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
 

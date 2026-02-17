@@ -4,9 +4,7 @@
 # Location: /public_html/wolf/.htaccess
 # ============================================================
 
-# ------------------------------------------------------------
 # Prevent directory listing
-# ------------------------------------------------------------
 Options -Indexes
 
 # Serve index.html by default
@@ -25,19 +23,12 @@ RewriteEngine Off
 # ============================================================
 <IfModule mod_headers.c>
 
-  # Prevent MIME-type sniffing
   Header always set X-Content-Type-Options "nosniff"
-
-  # Clickjacking protection
   Header always set X-Frame-Options "SAMEORIGIN"
-
-  # Referrer control
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
-
-  # Disable powerful APIs (adjust if needed later)
   Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
 
-  # Content Security Policy (safe for your current static setup)
+  # CSP: static self-hosted app
   Header always set Content-Security-Policy "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; upgrade-insecure-requests"
 
 </IfModule>
@@ -45,63 +36,76 @@ RewriteEngine Off
 
 # ============================================================
 # Block access to dotfiles (defense-in-depth)
-# Allows .well-known if ever needed
+# Allow .well-known (ACME, etc.) if ever needed
 # ============================================================
-<FilesMatch "^\.">
+<FilesMatch "^\.well-known">
+  Require all granted
+</FilesMatch>
+
+<FilesMatch "^\.(?!well-known)">
   Require all denied
 </FilesMatch>
 
-<IfModule mod_rewrite.c>
-  RewriteEngine On
-  RewriteRule ^\.well-known/ - [L]
-</IfModule>
-
 
 # ============================================================
-# Cache-Control Rules (PWA-Friendly)
+# Cache-Control Rules (PWA-friendly, no fingerprinted assets)
 # ============================================================
 <IfModule mod_headers.c>
 
-  # HTML should revalidate (ensures updates show up)
+  # App shell: always revalidate so updates appear quickly
   <FilesMatch "\.(html)$">
-    Header set Cache-Control "no-cache"
+    Header always set Cache-Control "no-cache"
   </FilesMatch>
-
-  # Service worker must NEVER be aggressively cached
-  <Files "service-worker.js">
-    Header set Cache-Control "no-cache, no-store, must-revalidate"
-  </Files>
 
   # Manifest should revalidate
   <Files "manifest.webmanifest">
-    Header set Cache-Control "no-cache"
+    Header always set Cache-Control "no-cache"
   </Files>
 
-  # Static assets can be cached long-term
-  <FilesMatch "\.(css|js|png|jpg|jpeg|gif|svg|webp|ico)$">
-    Header set Cache-Control "public, max-age=31536000, immutable"
+  # Service worker must NEVER be cached aggressively
+  <Files "service-worker.js">
+    Header always set Cache-Control "no-cache, no-store, must-revalidate"
+    Header always set Pragma "no-cache"
+    Header always set Expires "0"
+  </Files>
+
+  # CSS/JS are NOT fingerprinted, so do NOT mark immutable
+  <FilesMatch "\.(css|js)$">
+    Header always set Cache-Control "no-cache"
+  </FilesMatch>
+
+  # Images/icons can be cached long-term
+  <FilesMatch "\.(png|jpg|jpeg|gif|svg|webp|ico)$">
+    Header always set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 
 </IfModule>
 
 
 # ============================================================
-# Expires fallback (for hosts that still rely on mod_expires)
+# Expires fallback (for hosts relying on mod_expires)
 # ============================================================
 <IfModule mod_expires.c>
   ExpiresActive On
 
-  # Do not cache app shell aggressively
+  # Revalidate app shell + core files
   ExpiresByType text/html "access plus 0 seconds"
-
-  # Ensure service worker updates quickly
+  ExpiresByType text/css "access plus 0 seconds"
   ExpiresByType application/javascript "access plus 0 seconds"
+  ExpiresByType application/manifest+json "access plus 0 seconds"
+  ExpiresByType application/json "access plus 0 seconds"
 
-  # Long cache for static assets
-  ExpiresByType text/css "access plus 1 year"
+  # Long cache for images/icons
   ExpiresByType image/png "access plus 1 year"
   ExpiresByType image/jpeg "access plus 1 year"
   ExpiresByType image/svg+xml "access plus 1 year"
   ExpiresByType image/webp "access plus 1 year"
   ExpiresByType image/gif "access plus 1 year"
+  ExpiresByType image/x-icon "access plus 1 year"
+
+  # Extra safety: service worker should not inherit long-lived behavior
+  <Files "service-worker.js">
+    ExpiresActive Off
+  </Files>
+
 </IfModule>
