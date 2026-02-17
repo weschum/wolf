@@ -71,7 +71,7 @@ RewriteEngine Off
 
   # CSS/JS are NOT fingerprinted, so do NOT mark immutable
   <FilesMatch "\.(css|js)$">
-    Header always set Cache-Control "no-cache"
+    Header always set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 
   # Images/icons can be cached long-term
