@@ -4,6 +4,7 @@
   // -----------------------------
   // Constants / Storage
   // -----------------------------
+  
   const STORAGE_KEY = 'wolf.v1.game';
   const THEME_KEY = 'wolf.v1.theme';
 
@@ -1045,7 +1046,31 @@
   // -----------------------------
   // Boot
   // -----------------------------
+  
+  function setAppVersionFromFilename() {
+    const versionEl = document.getElementById('appVersion');
+    if (!versionEl) return;
+
+    // Find the script tag that loaded this file
+    const scripts = document.getElementsByTagName('script');
+    let src = '';
+
+    for (const s of scripts) {
+      if (s.src && s.src.includes('/assets/app.')) {
+        src = s.src;
+        break;
+      }
+    }
+
+    const match = src.match(/app\.(v[\d.]+)\.js/);
+    if (match && match[1]) {
+      versionEl.textContent = ` ${match[1]}`;
+    }
+  }
+
   function init() {
+    setAppVersionFromFilename();
+
     bindUI();
     updateResumeButton();
     registerServiceWorker();
