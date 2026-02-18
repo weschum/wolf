@@ -241,6 +241,7 @@ a{color:var(--primary)}
 .topbar__actions{display:flex;gap:8px}
 
 /* ---------- Theme picker (top bar) ---------- */
+
 .themePicker{
   display:flex;
   align-items:center;
@@ -257,6 +258,8 @@ a{color:var(--primary)}
 
 .themeSelect{
   appearance:none;
+  text-align: center;
+  text-align-last: center; /* for Firefox */
   padding-right: 28px; /* space for the dropdown arrow */
 }
 
@@ -273,7 +276,11 @@ a{color:var(--primary)}
 
 
 /* ---------- Layout Containers ---------- */
-.container{max-width:860px;margin:0 auto;padding:0 12px}
+.container{
+  max-width:860px;
+  margin:0 auto;
+  padding:0 12px
+}
 .screen{padding:12px 0}
 .hidden{display:none!important}
 
@@ -291,9 +298,19 @@ a{color:var(--primary)}
 }
 
 /* ---------- Typography Helpers ---------- */
-h1{margin:0 0 12px 8px;font-size:22px}
-h2{margin:0 0 6px 8px;font-size:18px}
-.h1like{font-size:20px;font-weight:800}
+h1{
+  margin:6px 0 12px 0;
+  font-size:22px;
+  text-align:center;
+}
+h2{
+  margin:0 0 6px 8px;
+  font-size:18px
+}
+.h1like{
+  font-size:20px;
+  font-weight:800
+}
 .center{text-align:center}
 .small{font-size:12px}
 .muted{color:var(--muted)}
@@ -326,6 +343,42 @@ h2{margin:0 0 6px 8px;font-size:18px}
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+/* =========================================================
+   Donation Block (shown on start screen only)
+   ========================================================= */
+
+.donate-block {
+  margin: 32px 0 2px 0;
+  text-align: center;
+  padding: 16px 16px 24px;
+  border-radius: 16px;
+  background: rgb(var(--primary-rgb) / 0.1); /* subtle tinted background */
+}
+
+.donate-text p {
+  opacity: 0.8;
+  padding: 0px;
+}
+
+.donate-button {
+  display: inline-block;
+  padding: 10px 18px;
+  background-color: rgb(var(--primary-rgb) / 0.8); /* or your app accent color */
+  color: var(--text);
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: transform 0.1s ease, opacity 0.2s ease;
+}
+
+.donate-button:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.donate-button:active {
+  transform: translateY(0);
 }
 
 
@@ -453,16 +506,72 @@ h2{margin:0 0 6px 8px;font-size:18px}
 
 
 /* =========================================================
-   Checkbox / Radio rows
+   Checkbox rows (custom styled)
    ========================================================= */
-.check,.radio{
-  padding: 6px 10px 4px 4px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  cursor:pointer
+.check {
+  padding: 6px 10px 6px 4px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  position: relative;
 }
-.check input,.radio input{transform:scale(1.2)}
+
+.check input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.check span {
+  position: relative;
+  padding-left: 28px;
+}
+
+/* box */
+.check span::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 6px;
+  background: var(--card);
+  transition: all 0.15s ease;
+}
+
+/* check mark */
+.check span::after {
+  content: "";
+  position: absolute;
+  left: 5px;
+  top: 25%;
+  transform: translateY(-50%) rotate(-45deg) scale(0);
+  width: 10px;
+  height: 5px;
+  border: 2px solid white;
+  border-top: none;
+  border-right: none;
+  transition: transform 0.25s ease;
+}
+
+/* checked state */
+.check input[type="checkbox"]:checked + span::after {
+  transform: translateY(-50%) rotate(-45deg) scale(1);
+}
+
+.check input[type="checkbox"]:checked + span::after {
+  transform: rotate(-45deg) scale(1);
+}
+
+/* hover */
+.check:hover span::before {
+  border-color: var(--accent);
+}
 
 /* =========================================================
    Game Screen: Sticky hole header
@@ -540,6 +649,29 @@ h2{margin:0 0 6px 8px;font-size:18px}
   font-size:12px;
   font-weight:800;
 }
+.holeMini{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
+  gap:6px 10px;
+}
+
+.holeMini__name{
+  font-size:12px;
+  color:var(--muted);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.holeMini__delta{
+  font-size:13px;
+  font-weight:800;
+}
+
+.holeMini__delta.isPlus{ color: var(--accent); }
+.holeMini__delta.isMinus{ color: var(--danger); }
+
 
 /* =========================================================
    Holes list (edit hole from scoreboard)
@@ -557,8 +689,16 @@ h2{margin:0 0 6px 8px;font-size:18px}
   border:1px solid var(--border);
   border-radius:12px;
   background:var(--surface);
+
+  /* mobile tap affordance */
+  cursor:pointer;
+  user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .08s ease;
 }
-.holeRow button{padding:8px 10px}
+.holeRow:active{
+  transform:translateY(1px);
+}
 
 /* =========================================================
    Modal (Rules)
@@ -576,9 +716,22 @@ h2{margin:0 0 6px 8px;font-size:18px}
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
-  padding:16px;
+  padding:12px;
+
+  max-height: 85vh;
+  overflow-y: auto;
 }
-.rules ul{margin:10px 0 0 18px;line-height:1.5}
+.rules ul{
+  margin:10px 0 0 0px;
+  line-height:1.2;
+}
+.rules li{
+  margin:0 12px 6px -12px;
+  font-weight: 300;
+}
+.rules b{
+  font-weight: 700;
+}
 
 /* Rules modal readability: force white text even if browser default styles vary */
 .rules, .rules *{ color: var(--text); }

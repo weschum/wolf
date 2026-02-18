@@ -6,7 +6,7 @@
   <title>Wolf Disc Golf Scoring</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/styles.2.17.8.css" />
+  <link rel="stylesheet" href="./assets/styles.2.18.0.css" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
   
@@ -52,13 +52,31 @@
     <!-- LOAD -->
     <section id="screenLoad" class="screen">
       <div class="card">
-        <h1>Start</h1>
-        <p class="muted">Works offline after loading. Resume is available if you leave and come back.</p>
+        <h1>Welcome!</h1>
+        <p class="muted">Once loaded, the app and your game is saved locally and will work without a network connection. Resume is available even if you close the app and reopen it later. If Resume is greyed out, you have no saved game data.</p>
+        <p class="muted">Pro tip: Save to your home screen as an app for easy access!</p>
 
         <div class="stack startActions">
           <button id="btnNewGame" class="btn btn--primary" type="button">Start New Game</button>
           <button id="btnResume" class="btn" type="button" disabled>Resume Game</button>
           <button id="btnCheckUpdate" class="btn btn--ghost" type="button">Check for Update</button>
+        </div>
+        <div class="card--inset">
+          <div class="donate-block">
+            <p class="donate-text">
+              This app is free to use — but if you'd like to support the cause and help me build more cool stuff,
+              consider donating!
+            </p>
+
+            <a 
+              href="https://www.venmo.com/u/chumworx" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="donate-button"
+            >
+              Donate via Venmo
+            </a>
+          </div>
         </div>
       </div>
     </section>
@@ -150,7 +168,7 @@
           <div class="row row--between row--center">
             <label class="check">
               <input id="loneWolfToggle" type="checkbox" />
-              <span>Lone Wolf</span>
+              <span> Lone Wolf</span>
             </label>
             <div class="hint">Lone Wolf is 1 vs everyone.</div>
           </div>
@@ -204,19 +222,22 @@
     <dialog id="rulesDialog" class="modal">
       <div class="modal__inner">
         <div class="row row--between row--center">
-          <h2 class="rules">Rules (Wolf Disc Golf)</h2>
+          <h2 class="rules">Rules of Play</h2>
           <button id="btnCloseRules" class="btn btn--ghost" type="button">Close</button>
         </div>
 
         <div class="rules">
           <ul>
             <li><b>Players:</b> 4 or 5</li>
-            <li><b>Order:</b> fixed order rotates each hole; last is the <b>Wolf</b></li>
-            <li><b>Partner:</b> Wolf may pick a partner (or go Lone Wolf)</li>
-            <li><b>Win:</b> lowest team strokes wins the hole</li>
-            <li><b>Points:</b> winners take 1 point from each loser (split evenly on the winning team)</li>
-            <li><b>Lone Wolf:</b> wins/loses 1 point per opponent</li>
-            <li><b>Ties:</b> no points; optional push multiplier carries to next hole</li>
+            <li><b>Wager:</b> For easy math, it is recommended to wager $1.50 (or multiples of) per pt on 5 player games. Trust me on this one. $1 per point works just fine with four players.</li>
+            <li><b>Order:</b> Fixed order rotates each hole. The last player in the order is the <b>Wolf</b></li>
+            <li><b>Wolf Partner:</b> After each player tees, Wolf must take them as partner or pass. Once another player tees, the previous player cannot be selected. If the Wolf has not chosen a partner before their turn to throw, they must take the last player to tee before them or declare "Lone Wolf" before they throw.</li>
+            <li><b>Wolf Pack:</b> The Wolf and their partner are a team. The Wolf is the leader of the pack.</li>
+            <li><b>Little Piggies:</b> All the players who are not the Wolf or their partner are "Little Piggies".</li>
+            <li><b>Win:</b> The team with the least throws to finish the hole wins.</li>
+            <li><b>Ties:</b> No points awarded. Optional "push" carries 1 pts per player to the next hole.</li>
+            <li><b>Points:</b> All players wager 1 point per hole. The winning team splits the pot between players evenly.</li>
+            <li><b>Lone Wolf:</b> Wins or Loses 1 point per opponent. Big Risk for Big Reward. Tie is the same as any other tie.</li>
           </ul>
         </div>
       </div>
@@ -224,6 +245,6 @@
 
   </main>
 
-  <script defer src="./assets/app.2.17.8.js"></script>
+  <script defer src="./assets/app.2.18.0.js"></script>
 </body>
 </html>

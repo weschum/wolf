@@ -38,7 +38,7 @@
 */
 'use strict';
 
-const SW_VERSION = 'v2.17.8';
+const SW_VERSION = 'v2.18.0';
 
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
@@ -52,8 +52,8 @@ const PRECACHE_URLS = [
   // DO NOT precache the service worker itself:
   // './service-worker.js',
 
-  './assets/styles.2.17.8.css',
-  './assets/app.2.17.8.js',
+  './assets/styles.2.18.0.css',
+  './assets/app.2.18.0.js',
 
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',

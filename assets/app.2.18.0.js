@@ -632,43 +632,82 @@
 
     list.innerHTML = '';
     perHole.forEach((h) => {
-      const div = document.createElement('div');
-      div.className = 'holeRow';
+    const div = document.createElement('div');
+    div.className = 'holeRow';
 
-      const left = document.createElement('div');
+    // whole card clickable
+    const goEdit = () => {
+      showScreen(SCREENS.game);
+      goToHole(h.hole - 1);
+    };
 
-      // Title line: "Hole # (status)"
-      const titleLine = `<b>Hole ${h.hole}</b> <span class="muted small">(${escapeHtml(h.statusLabel)})</span>`;
+    div.setAttribute('role', 'button');
+    div.setAttribute('tabindex', '0');
+    div.setAttribute('aria-label', `Edit hole ${h.hole}`);
 
-      // Delta line: only show if hole is scored AND not tie/not scored
-      let deltaLine = '';
-      const showDeltas = (h.status !== 'NOT_SCORED' && h.status !== 'TIE');
-
-      if (showDeltas) {
-        const parts = game.players.map(p => {
-          const u = h.deltaByPlayer?.[p.id] ?? 0;
-          const sign = u > 0 ? '+' : (u < 0 ? '-' : '+');
-          const txt = (u === 0) ? '0' : formatPoints(Math.abs(u));
-          return `${escapeHtml(p.name)} ${sign}${escapeHtml(txt)}`;
-        });
-        deltaLine = `<div class="muted small">${parts.join(', ')}</div>`;
+    div.addEventListener('click', goEdit);
+    div.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        goEdit();
       }
+    });
 
-      left.innerHTML = `${titleLine}${deltaLine}`;
+    const left = document.createElement('div');
 
-      const btn = document.createElement('button');
-      btn.className = 'btn btn--ghost';
-      btn.type = 'button';
-      btn.textContent = 'Edit';
-      btn.addEventListener('click', () => {
-        showScreen(SCREENS.game);
-        goToHole(h.hole - 1);
+    // Title line
+    const title = document.createElement('div');
+    title.innerHTML = `<b>Hole ${h.hole}</b> <span class="muted small">(${escapeHtml(h.statusLabel)})</span>`;
+    left.appendChild(title);
+
+    // Only show mini table if hole is scored (or tie)
+    if (h.status !== 'NOT_SCORED') {
+      const mini = document.createElement('div');
+      mini.className = 'holeMini';
+      mini.style.setProperty('--cols', String(game.players.length));
+
+      // Names row
+      game.players.forEach((p) => {
+        const cell = document.createElement('div');
+        cell.className = 'holeMini__name';
+        cell.textContent = p.name;
+        mini.appendChild(cell);
       });
 
-      div.appendChild(left);
-      div.appendChild(btn);
-      list.appendChild(div);
-    });
+      // Deltas row
+      game.players.forEach((p) => {
+        const cell = document.createElement('div');
+        cell.className = 'holeMini__delta';
+
+        const u = h.deltaByPlayer?.[p.id] ?? 0;
+
+        let txt = '0';
+
+        if (h.status === 'TIE') {
+          txt = '0';
+        } else {
+          if (u > 0) {
+            cell.classList.add('isPlus');
+            txt = `+${formatPoints(u)}`;
+          } else if (u < 0) {
+            cell.classList.add('isMinus');
+            txt = `-${formatPoints(Math.abs(u))}`;
+          } else {
+            txt = '0';
+          }
+        }
+
+        cell.textContent = txt;
+        mini.appendChild(cell);
+      });
+
+      left.appendChild(mini);
+    }
+
+    div.appendChild(left);
+    list.appendChild(div);
+  });
+
   }
 
   // -----------------------------
