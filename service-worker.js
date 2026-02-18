@@ -5,38 +5,40 @@
 
 /* Wolf PWA Service Worker
    Versioned precache + sane caching strategies
-
    ============================================================
    VERSION BUMP CHECKLIST
    ============================================================
    When releasing a new version:
 
-   1) Update SW_VERSION below (e.g., v2.17.4)
-
-   2) Rename versioned asset files in /assets/:
+   1) Rename versioned asset files in /assets/ FIRST:
         - styles.vX.X.X.css
         - app.vX.X.X.js
 
-   3) Update <link> + <script> references in index.html:
+      (The app version shown in the UI is derived from app.vX.X.X.js)
+
+   2) Update <link> + <script> references in index.html:
         ./assets/styles.vX.X.X.css
         ./assets/app.vX.X.X.js
+
+   3) Update SW_VERSION below (must match the same version).
 
    4) Update the PRECACHE_URLS list in this file
       to match the new filenames.
 
-   5) (Optional but recommended)
-      Update the visible fallback version text in index.html
-      inside #appVersion.
+   IMPORTANT:
+     • All version numbers must match exactly.
+     • If filenames and SW_VERSION differ, update behavior may break.
 
    This ensures:
      • Browsers fetch new JS/CSS immediately
      • Old caches are invalidated safely
-     • PWA update banner works correctly
+     • The displayed version always matches the loaded build
+     • The PWA update banner works correctly
    ============================================================
 */
 'use strict';
 
-const SW_VERSION = 'v2.17.6';
+const SW_VERSION = 'v2.17.7';
 
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
@@ -50,8 +52,8 @@ const PRECACHE_URLS = [
   // DO NOT precache the service worker itself:
   // './service-worker.js',
 
-  './assets/styles.2.17.6.css',
-  './assets/app.2.17.6.js',
+  './assets/styles.2.17.7.css',
+  './assets/app.2.17.7.js',
 
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
