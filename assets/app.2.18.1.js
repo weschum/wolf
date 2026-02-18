@@ -313,6 +313,54 @@
   // -----------------------------
   // UI: Setup (buttons for players/holes)
   // -----------------------------
+
+  (function initTopbarMenu(){
+    const btn = $('btnMenu');
+    const panel = $('topbarMenuPanel');
+    if (!btn || !panel) return;
+
+    function openMenu(){
+      panel.classList.remove('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeMenu(){
+      panel.classList.add('hidden');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function toggleMenu(){
+      const isOpen = !panel.classList.contains('hidden');
+      isOpen ? closeMenu() : openMenu();
+    }
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleMenu();
+    });
+
+    // Close when clicking anywhere outside
+    document.addEventListener('click', (e) => {
+      if (panel.classList.contains('hidden')) return;
+      if (!panel.contains(e.target) && e.target !== btn) closeMenu();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeMenu();
+    });
+
+    // Optional: close menu when any menu button is clicked
+    panel.addEventListener('click', (e) => {
+      const t = e.target;
+      if (t && t.matches('button')) closeMenu();
+    });
+
+    // Optional: close menu after changing theme
+    const themeSel = $('themeSelect');
+    themeSel?.addEventListener('change', () => closeMenu());
+  })();
+
   function setSegmentActive(containerEl, value) {
     if (!containerEl) return;
     qsa('.segBtn', containerEl).forEach(btn => {

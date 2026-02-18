@@ -6,7 +6,7 @@
   <title>Wolf Disc Golf Scoring</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/styles.2.18.0.css" />
+  <link rel="stylesheet" href="./assets/styles.2.18.1.css" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
   
@@ -22,24 +22,79 @@
       <div class="brand__subtitle">Disc Golf Scoring</div>
     </div>
     <div class="topbar__actions">
-      <div class="themePicker">
-        <select id="themeSelect" class="btn btn--ghost themeSelect" aria-label="Theme">
-          <option value="graphite">Graphite</option>
-          <option value="coffee">Coffee</option>
-          <option value="forest">Forest</option>
-          <option value="midnight">Midnight</option>
-          <option value="crimson">Crimson</option>
-          <option value="teal">Teal</option>
-          <option value="summer">Summertime</option>
-          <option value="rainbow">Rainbow</option>
-          <option value="retro">Retro Arcade</option>
-          <option value="cottoncandy">Cotton Candy</option>
-        </select>
-      </div>
 
-      <button id="btnRules" class="btn btn--ghost" type="button">Rules</button>
-      <button id="btnReset" class="btn btn--danger" type="button" title="Clear saved game">Reset</button>
+    <!-- Theme (always visible) -->
+    <div class="themePicker">
+      <select id="themeSelect"
+              class="btn btn--ghost themeSelect"
+              aria-label="Theme">
+        <option value="graphite">Graphite</option>
+        <option value="coffee">Coffee</option>
+        <option value="forest">Forest</option>
+        <option value="midnight">Midnight</option>
+        <option value="crimson">Crimson</option>
+        <option value="teal">Teal</option>
+        <option value="summer">Summertime</option>
+        <option value="rainbow">Rainbow</option>
+        <option value="retro">Retro Arcade</option>
+        <option value="cottoncandy">Cotton Candy</option>
+      </select>
     </div>
+
+    <!-- Hamburger menu -->
+    <div class="topbarMenu">
+      <button id="btnMenu"
+              class="btn btn--ghost topbarMenu__btn"
+              type="button"
+              aria-label="Menu"
+              aria-haspopup="true"
+              aria-expanded="false">
+        <svg class="topbarMenu__icon"
+            viewBox="0 0 24 24"
+            width="20"
+            height="20"
+            aria-hidden="true">
+          <path d="M2 7h20M2 12h20M2 17h20"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div id="topbarMenuPanel"
+          class="menuPanel hidden"
+          role="menu"
+          aria-label="Top bar menu">
+
+        <div class="menuPanel__section">
+          <button id="btnSetup"
+                  class="btn btn--ghost menuPanel__item"
+                  type="button"
+                  role="menuitem">
+            Edit Settings
+          </button>
+
+          <button id="btnRules"
+                  class="btn btn--ghost menuPanel__item"
+                  type="button"
+                  role="menuitem">
+            Rules
+          </button>
+
+          <button id="btnReset"
+                  class="btn btn--danger menuPanel__item"
+                  type="button"
+                  role="menuitem"
+                  title="Clear saved game">
+            Reset
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
 
   </header>
 
@@ -59,7 +114,7 @@
         <div class="stack startActions">
           <button id="btnNewGame" class="btn btn--primary" type="button">Start New Game</button>
           <button id="btnResume" class="btn" type="button" disabled>Resume Game</button>
-          <button id="btnCheckUpdate" class="btn btn--ghost" type="button">Check for Update</button>
+          <!--<button id="btnCheckUpdate" class="btn btn--ghost" type="button">Check for Update</button>-->
         </div>
         <div class="card--inset">
           <div class="donate-block">
@@ -245,6 +300,6 @@
 
   </main>
 
-  <script defer src="./assets/app.2.18.0.js"></script>
+  <script defer src="./assets/app.2.18.1.js"></script>
 </body>
 </html>

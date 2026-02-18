@@ -236,9 +236,79 @@ a{color:var(--primary)}
   backdrop-filter: blur(10px);
   z-index: 20; /* ensures it stays above sticky hole header */
 }
-.brand__title{font-size:18px;font-weight:800}
-.brand__subtitle{font-size:12px;color:var(--muted)}
-.topbar__actions{display:flex;gap:8px}
+
+.topbarMenu{
+  position:relative;
+}
+
+.topbarMenu__btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:10px 12px;
+}
+
+.topbarMenu__icon{
+  display:block;
+}
+
+.menuPanel{
+  position:absolute;
+  right:0;
+  top:calc(100% + 8px);
+  min-width:220px;
+  max-width:80vw;
+  padding:10px;
+  border:1px solid var(--border);
+  border-radius:14px;
+  background:var(--card);
+  z-index:50;
+  -webkit-tap-highlight-color:transparent;
+}
+
+.menuPanel.hidden{ display:none; }
+
+.menuPanel__section{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.menuPanel__section + .menuPanel__section{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--border);
+}
+
+.menuPanel__label{
+  margin:0 0 4px 2px;
+}
+
+.menuPanel__item{
+  width:100%;
+  justify-content:center; /* keeps the "button vibe" consistent */
+}
+
+.menuPanel__select{
+  width:100%;
+  text-align:center;
+  text-align-last:center;
+}
+
+.brand__title{
+  font-size:22px;
+  font-weight:800;
+}
+
+.brand__subtitle{
+  font-size:12px;
+  color:var(--muted);
+}
+
+.topbar__actions{
+  display:flex;
+  gap:8px;
+}
 
 /* ---------- Theme picker (top bar) ---------- */
 
