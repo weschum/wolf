@@ -8,7 +8,7 @@
   const STORAGE_KEY = 'wolf.v1.game';
   const THEME_KEY = 'wolf.v1.theme';
 
-  const POINTS_UNIT = 6; // store points as "sixths" to avoid floats (handles 1.5, 2/3, etc.)
+  const POINTS_UNIT = 1; // integer scoring only
 
   const SCREENS = {
     load: 'screenLoad',
@@ -206,7 +206,8 @@
       const others = order.slice(0, -1);
 
       const isBlind = !!(g.options?.blindWolf && h.blind);
-      const baseWagerPerPlayer = isBlind ? 2 : 1;
+      // Base is always 1; Blind Wolf adds +1 for THIS hole only
+      const baseWagerPerPlayer = 1 + (isBlind ? 1 : 0);
 
       // per-hole delta map (always include keys so rendering order is stable)
       const deltaByPlayer = Object.fromEntries(playerIds.map(pid => [pid, 0]));
@@ -278,17 +279,18 @@
         statusLabel = wolfTeamWon ? 'Wolf Pack wins' : 'Little Piggies win';
       }
 
-      // Everyone on losing side pays wagerPerPlayer into pot (represented as net transfers)
-      losers.forEach(pid => applyDelta(deltaByPlayer, pid, -wagerUnits));
+      // Each loser pays EACH winner wagerUnits (no fractions, no pot splitting)
+      const winnerCount = winners.length;
+      const loserCount = losers.length;
 
-      // Pot is losers.length * wagerUnits, split across winners
-      const potUnits = losers.length * wagerUnits;
+      // Winners receive wagerUnits from each loser
+      winners.forEach(pid => {
+        applyDelta(deltaByPlayer, pid, +wagerUnits * loserCount);
+      });
 
-      const shareUnits = Math.floor(potUnits / winners.length);
-      const remainder = potUnits - (shareUnits * winners.length);
-
-      winners.forEach((pid, idx) => {
-        applyDelta(deltaByPlayer, pid, shareUnits + (idx === 0 ? remainder : 0));
+      // Losers pay wagerUnits to each winner
+      losers.forEach(pid => {
+        applyDelta(deltaByPlayer, pid, -wagerUnits * winnerCount);
       });
 
       perHole.push({
