@@ -223,6 +223,17 @@ html,body{
 }
 a{color:var(--primary)}
 
+.welcome{
+  margin:18px;
+  padding:0;
+  font-size: 16px;
+  color: var(--text);
+}
+p.welcome{
+  opacity:0.9;
+  margin-top:6px;
+}
+
 /* ---------- Top Bar ---------- */
 .topbar{
   display:flex;
