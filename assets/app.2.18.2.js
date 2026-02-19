@@ -317,20 +317,34 @@
   (function initTopbarMenu(){
     const btn = $('btnMenu');
     const panel = $('topbarMenuPanel');
-    if (!btn || !panel) return;
+    const overlay = $('menuOverlay');
+
+    if (!btn || !panel || !overlay) return;
 
     function openMenu(){
       panel.classList.remove('hidden');
-      btn.setAttribute('aria-expanded', 'true');
+      panel.classList.add('open');
+
+      overlay.classList.remove('hidden');
+      overlay.classList.add('open');
+
+      btn.setAttribute('aria-expanded','true');
+      document.body.classList.add('menuOpen');
     }
 
     function closeMenu(){
+      panel.classList.remove('open');
       panel.classList.add('hidden');
-      btn.setAttribute('aria-expanded', 'false');
+
+      overlay.classList.remove('open');
+      overlay.classList.add('hidden');
+
+      btn.setAttribute('aria-expanded','false');
+      document.body.classList.remove('menuOpen');
     }
 
     function toggleMenu(){
-      const isOpen = !panel.classList.contains('hidden');
+      const isOpen = panel.classList.contains('open');
       isOpen ? closeMenu() : openMenu();
     }
 
@@ -339,10 +353,15 @@
       toggleMenu();
     });
 
-    // Close when clicking anywhere outside
+    // Close when tapping overlay
+    overlay.addEventListener('click', closeMenu);
+
+    // Close when clicking outside
     document.addEventListener('click', (e) => {
-      if (panel.classList.contains('hidden')) return;
-      if (!panel.contains(e.target) && e.target !== btn) closeMenu();
+      if (!panel.classList.contains('open')) return;
+      if (!panel.contains(e.target) && e.target !== btn) {
+        closeMenu();
+      }
     });
 
     // Close on Escape
@@ -350,15 +369,10 @@
       if (e.key === 'Escape') closeMenu();
     });
 
-    // Optional: close menu when any menu button is clicked
+    // Close after clicking a menu button
     panel.addEventListener('click', (e) => {
-      const t = e.target;
-      if (t && t.matches('button')) closeMenu();
+      if (e.target.matches('button')) closeMenu();
     });
-
-    // Optional: close menu after changing theme
-    const themeSel = $('themeSelect');
-    themeSel?.addEventListener('change', () => closeMenu());
   })();
 
   function setSegmentActive(containerEl, value) {

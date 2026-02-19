@@ -20,6 +20,8 @@
 
   --danger: #ff6b6b;      /* modern soft red */
   --danger-rgb: 255 107 107;
+
+  --topbarCtlH: 40px; /* tweak if your buttons use a different height */
 }
 
 /* =========================================================
@@ -234,11 +236,12 @@ a{color:var(--primary)}
   top:0;
   background:var(--bg);
   backdrop-filter: blur(10px);
-  z-index: 20; /* ensures it stays above sticky hole header */
+  z-index: 100; /* must be above overlay */
 }
 
 .topbarMenu{
   position:relative;
+  z-index: 60; /* above overlay and menuPanel */
 }
 
 .topbarMenu__btn{
@@ -262,7 +265,7 @@ a{color:var(--primary)}
   border:1px solid var(--border);
   border-radius:14px;
   background:var(--card);
-  z-index:50;
+  z-index:110;
   -webkit-tap-highlight-color:transparent;
 }
 
@@ -286,6 +289,9 @@ a{color:var(--primary)}
 
 .menuPanel__item{
   width:100%;
+  height: var(--topbarCtlH);
+  display:flex;
+  align-items:center;
   justify-content:center; /* keeps the "button vibe" consistent */
 }
 
@@ -293,6 +299,25 @@ a{color:var(--primary)}
   width:100%;
   text-align:center;
   text-align-last:center;
+}
+
+.menuOverlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35); /* dim */
+  backdrop-filter: blur(4px);  /* blur (modern browsers) */
+  -webkit-backdrop-filter: blur(4px);
+  z-index:90; /* below menuPanel */
+  opacity:0;
+  transition: opacity .15s ease;
+}
+
+.menuOverlay.open{
+  opacity:1;
+}
+
+.menuOverlay.hidden{
+  display:none;
 }
 
 .brand__title{
@@ -307,6 +332,7 @@ a{color:var(--primary)}
 
 .topbar__actions{
   display:flex;
+  align-items: center;
   gap:8px;
 }
 
@@ -328,9 +354,19 @@ a{color:var(--primary)}
 
 .themeSelect{
   appearance:none;
-  text-align: center;
-  text-align-last: center; /* for Firefox */
-  padding-right: 28px; /* space for the dropdown arrow */
+  text-align:center;
+  text-align-last:center;
+  padding-right:28px; /* space for dropdown arrow */
+  padding-left:12px;  /* keep it button-y */
+  line-height: normal; /* <-- key: don’t force line-height to control height */
+}
+
+/* Match Theme select + hamburger height */
+.themeSelect,
+.topbarMenu__btn{
+  height: var(--topbarCtlH);
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .themeSelect:focus{
@@ -488,7 +524,8 @@ h2{
   color:var(--text);
   padding:10px 12px;
   border-radius:12px;
-  font-weight:700;
+  font-size: 15px;
+  font-weight:500;
   cursor:pointer;
 }
 .btn:disabled{opacity:.45;cursor:not-allowed}
@@ -632,10 +669,6 @@ h2{
 /* checked state */
 .check input[type="checkbox"]:checked + span::after {
   transform: translateY(-50%) rotate(-45deg) scale(1);
-}
-
-.check input[type="checkbox"]:checked + span::after {
-  transform: rotate(-45deg) scale(1);
 }
 
 /* hover */
