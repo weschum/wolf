@@ -469,8 +469,7 @@
 
     const order = rotatedOrderForHole(i);
     const wolfId = order[order.length - 1];
-    $('holeMeta').textContent = `Wolf: ${idToName(wolfId)}`;
-
+    
     // Bottom hole info (centered between Scores + Save)
     if ($('holeTitleBottom')) {
       $('holeTitleBottom').textContent = `Hole ${holeNum} of ${game.holeCount}`;
@@ -483,15 +482,50 @@
     const ol = $('orderList');
     if (ol) {
       ol.innerHTML = '';
+
+      const h = hole ?? {};
+      const partnerId = h.partnerId;
+
+      // Teams are only "known" when:
+      // - Lone Wolf (or Blind) => Wolf vs everyone
+      // - OR partner selected on a normal hole => Wolf+partner vs everyone
+      const isSoloMode = !!h.loneWolf || !!h.blind; // treat blind as solo for tagging
+      const hasPartner =
+        !!partnerId &&
+        partnerId !== wolfId &&
+        !isSoloMode;
+
       order.forEach((pid, idx) => {
         const li = document.createElement('li');
         li.textContent = idToName(pid);
-        if (idx === order.length - 1) {
+
+        let tagText = '';
+        let tagClass = 'tag';
+
+        if (pid === wolfId) {
+          tagText = 'WOLF';
+          // default .tag styling (blue)
+        } else if (isSoloMode) {
+          tagText = 'PIGGIE';
+          tagClass = 'tag tag--piggie';
+        } else if (hasPartner) {
+          if (pid === partnerId) {
+            tagText = 'wolf pack';
+            tagClass = 'tag tag--wolfpack'; // styled same as wolf
+          } else {
+            tagText = 'PIGGIE';
+            tagClass = 'tag tag--piggie';
+          }
+        }
+        // else: tagless until partner is chosen
+
+        if (tagText) {
           const tag = document.createElement('span');
-          tag.className = 'tag';
-          tag.textContent = 'WOLF';
+          tag.className = tagClass;
+          tag.textContent = tagText;
           li.appendChild(tag);
         }
+
         ol.appendChild(li);
       });
     }
