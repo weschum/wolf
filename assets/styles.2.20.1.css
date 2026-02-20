@@ -22,6 +22,8 @@
   --danger-rgb: 255 107 107;
 
   --topbarCtlH: 36px; /* tweak if your buttons use a different height */
+  
+  --navBtnW: 88px; /* Match footer nav button width single source of truth */
 }
 
 /* =========================================================
@@ -362,9 +364,9 @@ p.welcome{
 .container{
   max-width:860px;
   margin:0 auto;
-  padding:0 12px
+  padding:0 8px
 }
-.screen{padding:12px 0}
+.screen{padding:10px 0}
 .hidden{display:none!important}
 
 /* ---------- Cards ---------- */
@@ -373,7 +375,7 @@ p.welcome{
   border:1px solid var(--border);
   border-radius:16px;
   padding:8px;
-  box-shadow: 0 12px 30px rgba(0,0,0,.25);
+  box-shadow: 0 8px 16px rgba(0,0,0,.25);
 }
 .card--inset{
   background:var(--card2);
@@ -436,6 +438,7 @@ h2{
   margin: 32px 0 2px 0;
   text-align: center;
   padding: 16px 16px 24px;
+  border: 1px solid var(--border);
   border-radius: 16px;
   background: rgb(var(--primary-rgb) / 0.1); /* subtle tinted background */
 }
@@ -654,7 +657,7 @@ h2{
 
 .gameFooterBar.gameFooter--2row .gameFooter__nav{
   display:grid;
-  grid-template-columns: 88px 1fr 88px; /* prev / center / next */
+  grid-template-columns: var(--navBtnW) 1fr var(--navBtnW); /* prev / center / next */
   gap:8px;
   align-items:center;
 }
@@ -742,16 +745,76 @@ h2{
   border-color: var(--accent);
 }
 
-/* =========================================================
-   Game Screen: Sticky hole header
-   Keeps hole navigation visible while scrolling.
-   ========================================================= */
+/* -----------------------------
+   Game nav layering + sizing
+   ----------------------------- */
+
 .stickyHoleBar{
   position:sticky;
-  top:64px;         /* sits below the topbar */
-  z-index:10;
+  top:60px;         /* sits below the topbar */
+  z-index:20;        /* above inset cards/shadows */
   background:var(--card);
   padding-bottom:0px;
+}
+
+/* Top sticky bar Prev/Next */
+.stickyHoleBar #btnPrevHole,
+.stickyHoleBar #btnNextHole{
+  width: var(--navBtnW);
+  flex: 0 0 var(--navBtnW);
+}
+
+/* Create predictable stacking inside Game card */
+#screenGame .card{
+  position: relative;
+  isolation: isolate;
+}
+
+/* Inset cards sit below nav layers */
+#screenGame .card--inset{
+  position: relative;
+  z-index: 1;
+}
+
+/* Bottom nav above inset shadows */
+#screenGame .gameFooterBar{
+  position: relative;   /* makes z-index work */
+  z-index: 20;
+  background: transparent; /* do NOT block shadows with a big slab */
+}
+
+/* Keep the buttons above */
+#screenGame .gameFooterBar .btn{
+  position: relative;
+  z-index: 1;
+}
+
+/* Shadow “mask” that sits ONLY inside the button shape.
+   This preserves your real button border completely. */
+#screenGame .gameFooterBar .btn::before{
+  content:"";
+  position:absolute;
+  inset:0;                 /* IMPORTANT: do NOT extend past the border */
+  border-radius: inherit;
+  background: var(--card); /* matches the main card behind the footer */
+  z-index:-1;
+  pointer-events:none;
+}
+
+/* Top sticky bar buttons sit above inset shadows */
+#screenGame .stickyHoleBar .btn{
+  position: relative;
+  z-index: 1;
+}
+
+#screenGame .stickyHoleBar .btn::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius: inherit;
+  background: var(--card);
+  z-index:-1;
+  pointer-events:none;
 }
 
 /* =========================================================
@@ -759,7 +822,7 @@ h2{
    ========================================================= */
 .orderList{
   margin:0;
-  padding-left:24px;
+  padding-left:28px;
 }
 
 /* Reduced vertical padding to minimize scrolling */
