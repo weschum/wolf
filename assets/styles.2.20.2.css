@@ -729,7 +729,7 @@ h2{
   transform: translateY(-50%) rotate(-45deg) scale(0);
   width: 11px;
   height: 5px;
-  border: 2px solid white;
+  border: 2px solid var(--text);
   border-top: none;
   border-right: none;
   transition: transform 0.25s ease;

@@ -101,13 +101,27 @@
     });
   }
 
-  function isCurrentHoleDirty() {
+  function ensureEditBaselineForCurrentHole() {
     const h = game?.holes?.[game.currentHoleIndex];
-    if (!h || !h.result) return false;
-    if (!h._savedSnapshot) return false;
-    return holeSnapshot(h) !== h._savedSnapshot;
+    if (!h) return;
+    if (!h._editBaseline) h._editBaseline = holeSnapshot(h);
   }
 
+  function clearEditBaselineForCurrentHole() {
+    const h = game?.holes?.[game.currentHoleIndex];
+    if (!h) return;
+    h._editBaseline = null;
+  }
+
+  function isCurrentHoleDirty() {
+    const h = game?.holes?.[game.currentHoleIndex];
+    if (!h) return false;
+
+    // If the user has begun editing this hole, compare to that baseline.
+    if (h._editBaseline) return holeSnapshot(h) !== h._editBaseline;
+
+    return false;
+  }
   function setBottomStatus(text, isDanger) {
     const el = $('holeMetaBottom');
     if (!el) return;
@@ -116,19 +130,22 @@
   }
 
   function refreshDirtyState() {
-    const h = game?.holes?.[game.currentHoleIndex] ?? {};
+    const h = game?.holes?.[game.currentHoleIndex];
+    if (!h) return;
 
-    // If no result chosen yet, it's not "unsaved changes"—it's just not scored.
+    // 1) No result chosen yet
     if (!h.result) {
       setBottomStatus('Not yet scored.', false);
       return;
     }
 
-    // If we don't have a baseline snapshot yet, treat current saved state as baseline.
+    // 2) Result chosen but never saved
     if (!h._savedSnapshot) {
-      h._savedSnapshot = holeSnapshot(h);
+      setBottomStatus('Changes Not Saved', true);
+      return;
     }
 
+    // 3) Compare against last saved snapshot
     const dirty = holeSnapshot(h) !== h._savedSnapshot;
     setBottomStatus(dirty ? 'Changes Not Saved' : 'Saved.', dirty);
   }
@@ -180,6 +197,9 @@
     if (!game) return;
 
     isEditingSettings = true;
+
+    // Hide Randomize while editing (prevents scrambling a live scorecard)
+    $('btnRandomize')?.classList.add('hidden');
 
     // Show setup screen + prefill options
     showScreen(SCREENS.setup);
@@ -661,6 +681,7 @@
           const h = game.holes[game.currentHoleIndex];
           if (h.blind || h.loneWolf) return;
 
+          ensureEditBaselineForCurrentHole();
           h.partnerId = pid;
           saveGame();
 
@@ -689,6 +710,7 @@
 
       blindToggle.onchange = (e) => {
         const h = game.holes[game.currentHoleIndex];
+        ensureEditBaselineForCurrentHole();
         h.blind = !!e.target.checked;
 
         if (h.blind) {
@@ -709,6 +731,7 @@
 
       loneToggle.onchange = (e) => {
         const h = game.holes[game.currentHoleIndex];
+        ensureEditBaselineForCurrentHole();
         h.loneWolf = !!e.target.checked;
 
         if (!h.loneWolf && h.blind) {
@@ -754,6 +777,7 @@
 
         btn.addEventListener('click', () => {
           const h = game.holes[game.currentHoleIndex];
+          ensureEditBaselineForCurrentHole();
           h.result = r.value;
 
           setPillActive(rb, (b) => b.dataset.value === r.value);
@@ -791,14 +815,16 @@
 
       if (!discard) return;
 
-      // Revert to last saved snapshot
+      // Revert to the state when you entered this hole
       const h = game.holes[game.currentHoleIndex];
-      if (h?._savedSnapshot) {
-        const saved = JSON.parse(h._savedSnapshot);
+      if (h?._editBaseline) {
+        const saved = JSON.parse(h._editBaseline);
         h.partnerId = saved.partnerId;
         h.loneWolf = saved.loneWolf;
         h.blind = saved.blind;
         h.result = saved.result;
+        clearEditBaselineForCurrentHole();
+        saveGame();
       }
     }
 
@@ -1106,6 +1132,9 @@
       // If there's no active game loaded, just go to setup normally
       const loaded = game || loadGame();
       if (!loaded) {
+        isEditingSettings = false;
+        $('btnRandomize')?.classList.remove('hidden');
+
         showScreen(SCREENS.setup);
         initSetupUI();
         return;
@@ -1129,6 +1158,9 @@
     $('btnNewGame')?.addEventListener('click', () => {
       game = newGameTemplate();
       showScreen(SCREENS.setup);
+
+      isEditingSettings = false;
+      $('btnRandomize')?.classList.remove('hidden');
 
       if ($('optPushTies')) $('optPushTies').checked = false;
       if ($('optBlindWolf')) $('optBlindWolf').checked = false;
@@ -1314,6 +1346,7 @@
 
       // Lock snapshot so future edits show dirty
       h._savedSnapshot = holeSnapshot(h);
+      clearEditBaselineForCurrentHole();
       refreshDirtyState();
 
       // Auto-advance if not last hole
