@@ -173,6 +173,77 @@
     }
     game.currentHoleIndex = clamp(game.currentHoleIndex ?? 0, 0, game.holeCount - 1);
   }
+  
+  let isEditingSettings = false;
+
+  function openEditSettings() {
+    if (!game) return;
+
+    isEditingSettings = true;
+
+    // Show setup screen + prefill options
+    showScreen(SCREENS.setup);
+
+    if ($('optPushTies')) $('optPushTies').checked = !!game.options?.pushTies;
+    if ($('optBlindWolf')) $('optBlindWolf').checked = !!game.options?.blindWolf;
+
+    // Rebuild setup UI inputs based on CURRENT game
+    initSetupUI();
+
+    // Fill player name inputs from current game
+    const inputs = qsa('.playerNameInput');
+    inputs.forEach((inp, idx) => {
+      if (game.players[idx]) inp.value = game.players[idx].name;
+    });
+
+    // Make sure hole count reflects current
+    renderHoleOptionsButtons(game.playerCount, game.holeCount);
+
+    // Optional: change button label so it's clear
+    if ($('btnStartGame')) $('btnStartGame').textContent = 'Save Settings';
+
+    // Disable player count buttons while editing
+    const pcb = $('playerCountBtns');
+    if (pcb) {
+      qsa('.segBtn', pcb).forEach(btn => {
+        btn.disabled = true;
+        btn.classList.add('segBtn--disabled');
+      });
+    }
+  }
+
+  function applySettingsFromSetup() {
+    // read from setup UI
+    const pc = Number(game?.playerCount ?? 4);
+    const hc = Number(game?.holeCount ?? (pc === 4 ? 12 : 15));
+    const newPlayers = buildPlayersFromInputs();
+
+    // Basic validation
+    if (newPlayers.some(p => !p.name)) {
+      alert('Please enter all player names.');
+      return false;
+    }
+
+    // Keep hole objects; adjust length safely
+    game.playerCount = pc;
+    game.players = newPlayers;
+    game.holeCount = hc;
+
+    game.options = {
+      pushTies: !!$('optPushTies')?.checked,
+      blindWolf: !!$('optBlindWolf')?.checked,
+    };
+
+    ensureHolesLength();
+
+    // If blindWolf option is OFF, clear any blind flags
+    if (!game.options.blindWolf) {
+      game.holes.forEach(h => { h.blind = false; });
+    }
+
+    saveGame();
+    return true;
+  }
 
   function saveGame() {
     if (!game) return;
@@ -1031,6 +1102,19 @@
       }
     });
 
+    $('btnSetup')?.addEventListener('click', () => {
+      // If there's no active game loaded, just go to setup normally
+      const loaded = game || loadGame();
+      if (!loaded) {
+        showScreen(SCREENS.setup);
+        initSetupUI();
+        return;
+      }
+      game = loaded;
+      ensureHolesLength();
+      openEditSettings();
+    });
+
     const themeSelect = $('themeSelect');
     if (themeSelect) {
       const currentTheme = loadTheme();
@@ -1050,6 +1134,15 @@
       if ($('optBlindWolf')) $('optBlindWolf').checked = false;
 
       initSetupUI();
+
+      // Ensure player count buttons are enabled for new game
+      const pcb = $('playerCountBtns');
+      if (pcb) {
+        qsa('.segBtn', pcb).forEach(btn => {
+          btn.disabled = false;
+          btn.classList.remove('segBtn--disabled');
+        });
+      }
     });
 
     $('btnResume')?.addEventListener('click', () => {
@@ -1132,6 +1225,20 @@
     });
 
     $('btnStartGame')?.addEventListener('click', () => {
+      // EDIT MODE: apply changes without resetting holes/scores
+      if (isEditingSettings) {
+        const ok = applySettingsFromSetup();
+        if (!ok) return;
+
+        isEditingSettings = false;
+        if ($('btnStartGame')) $('btnStartGame').textContent = 'Start Game';
+
+        showScreen(SCREENS.game);
+        renderGameScreen();
+        return;
+      }
+
+      // NORMAL MODE: start a brand new game (your existing behavior)
       const pc = Number(game?.playerCount ?? 4);
       const hc = Number(game?.holeCount ?? (pc === 4 ? 12 : 15));
 
@@ -1148,6 +1255,7 @@
         pushTies: !!$('optPushTies')?.checked,
         blindWolf: !!$('optBlindWolf')?.checked,
       };
+
       game.holes = [];
       game.currentHoleIndex = 0;
       game.finishedAt = null;

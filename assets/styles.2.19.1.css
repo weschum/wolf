@@ -21,7 +21,7 @@
   --danger: #ff6b6b;      /* modern soft red */
   --danger-rgb: 255 107 107;
 
-  --topbarCtlH: 40px; /* tweak if your buttons use a different height */
+  --topbarCtlH: 36px; /* tweak if your buttons use a different height */
 }
 
 /* =========================================================
@@ -239,7 +239,7 @@ p.welcome{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:12px 14px;
+  padding: 8px 14px;
   border-bottom:1px solid var(--border);
 
   /* Sticky app header */
@@ -256,10 +256,15 @@ p.welcome{
 }
 
 .topbarMenu__btn{
+  /* keep icon/text vertically centered at smaller heights */
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  padding:10px 12px;
+  height: var(--topbarCtlH);
+  min-height: var(--topbarCtlH);
+  padding: 0 12px;             /* remove vertical padding to prevent clipping */
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .topbarMenu__icon{
@@ -301,9 +306,13 @@ p.welcome{
 .menuPanel__item{
   width:100%;
   height: var(--topbarCtlH);
+  min-height: var(--topbarCtlH);
   display:flex;
   align-items:center;
   justify-content:center; /* keeps the "button vibe" consistent */
+  padding: 0 12px;        /* prevent vertical clipping */
+  line-height: 1;
+  box-sizing: border-box;
 }
 
 .menuPanel__select{
@@ -334,11 +343,13 @@ p.welcome{
 .brand__title{
   font-size:22px;
   font-weight:800;
+  line-height: 1.05;  /* tighter to save vertical space */
 }
 
 .brand__subtitle{
   font-size:12px;
   color:var(--muted);
+  margin-top: 2px;    /* helps keep stack compact */
 }
 
 .topbar__actions{
@@ -367,17 +378,20 @@ p.welcome{
   appearance:none;
   text-align:center;
   text-align-last:center;
-  padding-right:28px; /* space for dropdown arrow */
-  padding-left:12px;  /* keep it button-y */
-  line-height: normal; /* <-- key: don’t force line-height to control height */
+
+  /* iOS Safari: avoid clipping by not forcing line-height */
+  height: calc(var(--topbarCtlH) + 2px);
+  min-height: calc(var(--topbarCtlH) + 2px);
+
+  padding: 0 28px 0 12px;
+  line-height: normal;
+  box-sizing: border-box;
 }
 
-/* Match Theme select + hamburger height */
-.themeSelect,
+/* Match hamburger height (do NOT force select height here) */
 .topbarMenu__btn{
   height: var(--topbarCtlH);
-  padding-top: 0;
-  padding-bottom: 0;
+  min-height: var(--topbarCtlH);
 }
 
 .themeSelect:focus{
@@ -526,6 +540,11 @@ h2{
   background: rgb(var(--primary-rgb) / 0.12);
 }
 
+.segBtn--disabled{
+  opacity: .5;
+  cursor: not-allowed;
+}
+
 /* =========================================================
    Buttons
    ========================================================= */
@@ -600,8 +619,8 @@ h2{
 .setupPlayersHeader{ margin-bottom:10px; }
 
 /* Footer spacing so buttons don't crowd the Options card */
-.setupFooter{ margin:16px 0px 4px; }
-.gameFooter{ margin:16px 0px 4px; }
+.setupFooter{ margin:8px 0px 4px; }
+.gameFooter{ margin:8px 0px 4px; }
 
 /* Bottom bar on game screen */
 .gameFooterBar{
@@ -622,20 +641,20 @@ h2{
 .gameFooterBar.gameFooter--2row{
   flex-direction:column;
   align-items:stretch; /* important: let inner grids span full width */
-  gap:10px;
+  gap:8px;
 }
 
 .gameFooterBar.gameFooter--2row .gameFooter__nav{
   display:grid;
   grid-template-columns: 88px 1fr 88px; /* prev / center / next */
-  gap:10px;
+  gap:8px;
   align-items:center;
 }
 
 .gameFooterBar.gameFooter--2row .gameFooter__actions{
   display:grid;
   grid-template-columns: 1fr 1fr; /* Scoreboard / Save */
-  gap:10px;
+  gap:8px;
 }
 
 .gameFooterBar.gameFooter--2row .gameFooter__nav .btn,
@@ -724,7 +743,7 @@ h2{
   top:64px;         /* sits below the topbar */
   z-index:10;
   background:var(--card);
-  padding-bottom:10px;
+  padding-bottom:0px;
 }
 
 /* =========================================================
