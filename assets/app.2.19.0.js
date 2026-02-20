@@ -92,6 +92,47 @@
       .replaceAll("'", '&#039;');
   }
 
+  function holeSnapshot(h) {
+    return JSON.stringify({
+      partnerId: h?.partnerId ?? null,
+      loneWolf: !!h?.loneWolf,
+      blind: !!h?.blind,
+      result: h?.result ?? null,
+    });
+  }
+
+  function isCurrentHoleDirty() {
+    const h = game?.holes?.[game.currentHoleIndex];
+    if (!h || !h.result) return false;
+    if (!h._savedSnapshot) return false;
+    return holeSnapshot(h) !== h._savedSnapshot;
+  }
+
+  function setBottomStatus(text, isDanger) {
+    const el = $('holeMetaBottom');
+    if (!el) return;
+    el.textContent = text;
+    el.classList.toggle('danger', !!isDanger);
+  }
+
+  function refreshDirtyState() {
+    const h = game?.holes?.[game.currentHoleIndex] ?? {};
+
+    // If no result chosen yet, it's not "unsaved changes"—it's just not scored.
+    if (!h.result) {
+      setBottomStatus('Not yet scored.', false);
+      return;
+    }
+
+    // If we don't have a baseline snapshot yet, treat current saved state as baseline.
+    if (!h._savedSnapshot) {
+      h._savedSnapshot = holeSnapshot(h);
+    }
+
+    const dirty = holeSnapshot(h) !== h._savedSnapshot;
+    setBottomStatus(dirty ? 'Changes Not Saved' : 'Saved.', dirty);
+  }
+
   // -----------------------------
   // Game State
   // -----------------------------
@@ -462,40 +503,42 @@
 
     const i = game.currentHoleIndex;
     const holeNum = i + 1;
-
     const hole = game.holes[i];
 
     $('holeTitle').textContent = `Hole ${holeNum} of ${game.holeCount}`;
 
     const order = rotatedOrderForHole(i);
     const wolfId = order[order.length - 1];
-    
-    // Bottom hole info (centered between Scores + Save)
+
+    // ----- Bottom footer updates -----
     if ($('holeTitleBottom')) {
       $('holeTitleBottom').textContent = `Hole ${holeNum} of ${game.holeCount}`;
     }
-    if ($('holeMetaBottom')) {
-      $('holeMetaBottom').textContent = (hole?.result ? 'Saved.' : 'Not yet scored.');
-    }
 
-    // order list
+    refreshDirtyState();
+
+    const atStart = (i === 0);
+    const atEnd = (i === game.holeCount - 1);
+
+    $('btnPrevHole')?.toggleAttribute('disabled', atStart);
+    $('btnNextHole')?.toggleAttribute('disabled', atEnd);
+
+    $('btnPrevHoleBottom')?.toggleAttribute('disabled', atStart);
+    $('btnNextHoleBottom')?.toggleAttribute('disabled', atEnd);
+
+    // ----- Order list -----
     const ol = $('orderList');
     if (ol) {
       ol.innerHTML = '';
 
-      const h = hole ?? {};
-      const partnerId = h.partnerId;
-
-      // Teams are only "known" when:
-      // - Lone Wolf (or Blind) => Wolf vs everyone
-      // - OR partner selected on a normal hole => Wolf+partner vs everyone
-      const isSoloMode = !!h.loneWolf || !!h.blind; // treat blind as solo for tagging
+      const partnerId = hole.partnerId;
+      const isSoloMode = !!hole.loneWolf || !!hole.blind;
       const hasPartner =
         !!partnerId &&
         partnerId !== wolfId &&
         !isSoloMode;
 
-      order.forEach((pid, idx) => {
+      order.forEach((pid) => {
         const li = document.createElement('li');
         li.textContent = idToName(pid);
 
@@ -504,20 +547,18 @@
 
         if (pid === wolfId) {
           tagText = 'WOLF';
-          // default .tag styling (blue)
         } else if (isSoloMode) {
           tagText = 'PIGGIE';
           tagClass = 'tag tag--piggie';
         } else if (hasPartner) {
           if (pid === partnerId) {
-            tagText = 'wolf pack';
-            tagClass = 'tag tag--wolfpack'; // styled same as wolf
+            tagText = 'WOLF PACK';
+            tagClass = 'tag tag--wolfpack';
           } else {
             tagText = 'PIGGIE';
             tagClass = 'tag tag--piggie';
           }
         }
-        // else: tagless until partner is chosen
 
         if (tagText) {
           const tag = document.createElement('span');
@@ -530,11 +571,11 @@
       });
     }
 
-    // blind wolf option visibility (feature flag)
+    // ----- Blind wolf feature visibility -----
     const blindEnabled = !!game.options.blindWolf;
     $('blindWolfBlock')?.classList.toggle('hidden', !blindEnabled);
 
-    // partner buttons (exclude wolf)
+    // ----- Partner buttons -----
     const pb = $('partnerButtons');
     if (pb) {
       pb.innerHTML = '';
@@ -544,25 +585,23 @@
         btn.className = 'pill';
         btn.dataset.pid = pid;
         btn.textContent = idToName(pid);
+
         btn.addEventListener('click', () => {
           const h = game.holes[game.currentHoleIndex];
-
-          // If blind or lone wolf, partner selection is not allowed
           if (h.blind || h.loneWolf) return;
 
           h.partnerId = pid;
           saveGame();
 
           setPillActive(pb, (b) => b.dataset.pid === pid);
-
-          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
-          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
+          refreshDirtyState();
         });
+
         pb.appendChild(btn);
       });
     }
 
-    // ---- Enforce rule: Blind Wolf implies Lone Wolf ----
+    // ----- Blind implies lone -----
     function enforceBlindImpliesLone() {
       if (!blindEnabled) return;
       if (!hole.blind) return;
@@ -572,7 +611,7 @@
     }
     enforceBlindImpliesLone();
 
-    // Blind Wolf toggle
+    // ----- Blind toggle -----
     const blindToggle = $('blindWolfToggle');
     if (blindToggle) {
       blindToggle.checked = !!hole.blind;
@@ -581,7 +620,6 @@
         const h = game.holes[game.currentHoleIndex];
         h.blind = !!e.target.checked;
 
-        // Blind Wolf implies Lone Wolf
         if (h.blind) {
           h.loneWolf = true;
           h.partnerId = null;
@@ -593,7 +631,7 @@
       };
     }
 
-    // Lone Wolf toggle
+    // ----- Lone toggle -----
     const loneToggle = $('loneWolfToggle');
     if (loneToggle) {
       loneToggle.checked = !!hole.loneWolf;
@@ -602,13 +640,11 @@
         const h = game.holes[game.currentHoleIndex];
         h.loneWolf = !!e.target.checked;
 
-        // If Lone Wolf is turned off, Blind must also turn off
         if (!h.loneWolf && h.blind) {
           h.blind = false;
           if (blindToggle) blindToggle.checked = false;
         }
 
-        // If Lone Wolf is turned on manually, clear partner
         if (h.loneWolf) {
           h.partnerId = null;
         }
@@ -618,7 +654,7 @@
       };
     }
 
-    // partner pills state
+    // ----- Partner pill state -----
     if (pb) {
       const disablePartners = !!hole.loneWolf || !!hole.blind;
       setPillDisabled(pb, disablePartners);
@@ -627,13 +663,14 @@
       if (disablePartners) setPillActive(pb, () => false);
     }
 
-    // Result selection buttons (optional)
+    // ----- Result buttons -----
     const rb = $('resultButtons');
     if (rb) {
       rb.innerHTML = '';
+
       const results = [
         { value: 'WOLF', label: hole.loneWolf ? 'Lone Wolf wins' : 'Wolf Pack wins' },
-        { value: 'OTHER', label: hole.loneWolf ? 'Little Piggies win' : 'Little Piggies win' },
+        { value: 'OTHER', label: 'Little Piggies win' },
         { value: 'TIE', label: 'Tie' },
       ];
 
@@ -643,38 +680,58 @@
         btn.className = 'pill';
         btn.dataset.value = r.value;
         btn.textContent = r.label;
+
         btn.addEventListener('click', () => {
           const h = game.holes[game.currentHoleIndex];
           h.result = r.value;
 
           setPillActive(rb, (b) => b.dataset.value === r.value);
           saveGame();
-
-          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
-          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
+          refreshDirtyState();
         });
+
         rb.appendChild(btn);
       });
 
       setPillActive(rb, (b) => b.dataset.value === (hole.result ?? ''));
     } else {
-      // Backward compatibility: radios
       qsa('input[name="result"]').forEach(r => {
         r.checked = (r.value === hole.result);
         r.onchange = () => {
           const h = game.holes[game.currentHoleIndex];
           h.result = r.value;
           saveGame();
-
-          if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
-          if ($('holeMetaBottom')) $('holeMetaBottom').textContent = (h.result ? 'Saved.' : 'Not yet scored.');
+          refreshDirtyState();
         };
       });
     }
   }
 
   function goToHole(index) {
-    game.currentHoleIndex = clamp(index, 0, game.holeCount - 1);
+    const target = clamp(index, 0, game.holeCount - 1);
+
+    // If dirty, confirm before leaving
+    if (isCurrentHoleDirty()) {
+      const discard = confirm(
+        'You have unsaved changes.\n\n' +
+        'Press OK to discard changes and continue.\n' +
+        'Press Cancel to stay and save.'
+      );
+
+      if (!discard) return;
+
+      // Revert to last saved snapshot
+      const h = game.holes[game.currentHoleIndex];
+      if (h?._savedSnapshot) {
+        const saved = JSON.parse(h._savedSnapshot);
+        h.partnerId = saved.partnerId;
+        h.loneWolf = saved.loneWolf;
+        h.blind = saved.blind;
+        h.result = saved.result;
+      }
+    }
+
+    game.currentHoleIndex = target;
     saveGame();
     renderGameScreen();
   }
@@ -1107,8 +1164,13 @@
       renderGameScreen();
     });
 
+    // Top buttons
     $('btnPrevHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex - 1));
     $('btnNextHole')?.addEventListener('click', () => goToHole(game.currentHoleIndex + 1));
+
+    // Bottom buttons
+    $('btnPrevHoleBottom')?.addEventListener('click', () => goToHole(game.currentHoleIndex - 1));
+    $('btnNextHoleBottom')?.addEventListener('click', () => goToHole(game.currentHoleIndex + 1));
 
     $('btnSaveHole')?.addEventListener('click', () => {
       const h = game.holes[game.currentHoleIndex];
@@ -1128,9 +1190,6 @@
 
       const isTie = h.result === 'TIE';
       if (!isTie) {
-        // If not tie:
-        // - Blind implies lone (already enforced)
-        // - If not lone, must have partner
         if (!h.loneWolf) {
           if (!h.partnerId) {
             alert('Choose a Wolf partner, or select Lone Wolf.');
@@ -1145,14 +1204,15 @@
 
       saveGame();
 
-      if ($('saveStatus')) $('saveStatus').textContent = 'Saved.';
-      if ($('holeMetaBottom')) $('holeMetaBottom').textContent = 'Saved.';
+      // Lock snapshot so future edits show dirty
+      h._savedSnapshot = holeSnapshot(h);
+      refreshDirtyState();
 
-      // auto-advance if not last hole
+      // Auto-advance if not last hole
       if (game.currentHoleIndex < game.holeCount - 1) {
         goToHole(game.currentHoleIndex + 1);
       } else {
-        renderGameScreen(); // last hole: just refresh UI
+        renderGameScreen();
       }
     });
 
