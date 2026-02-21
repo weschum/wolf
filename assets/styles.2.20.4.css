@@ -384,8 +384,8 @@ p.welcome{
 
 /* ---------- Typography Helpers ---------- */
 h1{
-  margin:6px 0 12px 0;
-  font-size:22px;
+  margin:0 0 8px;
+  font-size:20px;
   text-align:center;
 }
 h2{
