@@ -1,11 +1,16 @@
 /* =========================================================
    Wolf Disc Golf Scoring App — Core Styles
-   (Mobile-first, dark UI, minimal dependencies)
+   Mobile-first, dark UI, minimal dependencies
+   ========================================================= */
+
+/* =========================================================
+   Design tokens + theme system
+   - Defaults live on :root (graphite)
+   - Theme overrides are set on <html data-theme="...">
    ========================================================= */
 
 :root{
   /* Graphite (Default Theme) */
-
   --bg: #111314;          /* deep graphite */
   --card: #181b1d;        /* charcoal card */
   --card2: #1f2326;       /* lifted card */
@@ -21,14 +26,15 @@
   --danger: #ff6b6b;      /* modern soft red */
   --danger-rgb: 255 107 107;
 
-  --topbarCtlH: 36px; /* tweak if your buttons use a different height */
-  
-  --navBtnW: 88px; /* Match footer nav button width single source of truth */
+  /* Sizing */
+  --topbarCtlH: 36px;  /* top bar control height (theme + menu buttons) */
+  --navBtnW: 88px;     /* footer/nav button width (single source of truth) */
+  --setupPickBtnH: 110px; /* segmented picker button height (setup screen) */
 }
 
-/* =========================================================
-   Theme Overrides (set on <html data-theme="...">)
-   ========================================================= */
+/* -------------------------
+   Theme overrides
+   ------------------------- */
 
 /* Default graphite theme */
 html[data-theme="graphite"]{
@@ -140,19 +146,16 @@ html[data-theme="rainbow"]{
 
 /* Retro arcade */
 html[data-theme="retro"]{
-  /* Centipede / arcade cabinet dark */
   --bg:#070805;            /* near-black with a warm green-brown tint */
   --card:#0f1109;          /* dark cabinet panel */
   --card2:#14170b;         /* slightly lifted panel */
   --surface:#0b0d07;       /* controls/buttons surface */
 
-  /* Typography */
-  --text:#ffe7b5;          /* your cream = “phosphor glow” */
+  --text:#ffe7b5;          /* cream “phosphor glow” */
   --muted:#ffb762;         /* soft orange for secondary text */
-  --border:#2a2a16;        /* dark olive trim (keeps it arcade, not gray) */
+  --border:#2a2a16;        /* dark olive trim */
 
-  /* Accents */
-  --primary:#8c7318;       /* centipede green-ish gold (mustard) */
+  --primary:#8c7318;       /* centipede gold */
   --primary-rgb:140 115 24;
 
   --danger:#f73910;        /* hot arcade red */
@@ -191,7 +194,7 @@ html[data-theme="crimson"]{
   --primary:#ff9000;        /* deep saffron */
   --primary-rgb:255 144 0;
 
-  --danger:#ffe800;         /* crimson */
+  --danger:#ffe800;         /* bright yellow */
   --danger-rgb:255 232 0;
 }
 
@@ -209,13 +212,16 @@ html[data-theme="teal"]{
   --primary:#2dd4bf;        /* teal */
   --primary-rgb:45 212 191;
 
-  --danger:#fb7185;         /* keep a readable warm danger */
+  --danger:#fb7185;         /* readable warm danger */
   --danger-rgb:251 113 133;
 }
 
+/* =========================================================
+   Base / Reset
+   ========================================================= */
 
-/* ---------- Base / Reset ---------- */
-*{box-sizing:border-box}
+*{ box-sizing:border-box; }
+
 html,body{
   margin:0;
   padding:0;
@@ -223,28 +229,123 @@ html,body{
   color:var(--text);
   font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;
 }
-a{color:var(--primary)}
 
+a{ color:var(--primary); }
+
+/* Welcome copy on load screen */
 .welcome{
   margin:18px;
   padding:0;
-  font-size: 16px;
-  color: var(--text);
+  font-size:16px;
+  color:var(--text);
 }
-p.welcome{
+.welcome p{
   opacity:0.9;
-  margin-top:6px;
+  margin:12px 0 0;
 }
 
-/* ---------- Top Bar ---------- */
+/* =========================================================
+   Layout helpers
+   ========================================================= */
+
+.container{
+  max-width:860px;
+  margin:0 auto;
+  padding:0 8px;
+}
+
+.screen{ padding:10px 0; }
+
+.hidden{ display:none!important; }
+
+.stack{ display:flex; flex-direction:column; gap:8px; }
+.row{ display:flex; gap:8px; }
+.row--between{ justify-content:space-between; }
+.row--center{ align-items:center; }
+
+.center{ text-align:center; }
+
+/* =========================================================
+   Surface primitives
+   ========================================================= */
+
+.card{
+  background:var(--card);
+  border:1px solid var(--border);
+  border-radius:16px;
+  padding:8px;
+  box-shadow: 0 8px 16px rgba(0,0,0,.25);
+}
+.card--inset{
+  background:var(--card2);
+  margin-top:8px;
+}
+
+/* =========================================================
+   Setup screen — stacking order (avoid shadows covering controls)
+   ========================================================= */
+
+/* Create a stacking context for the setup card */
+#screenSetup > .card{
+  position: relative;
+  z-index: 0;
+}
+
+/* Lowest: form grid (players/holes pickers) */
+#screenSetup .formGrid{
+  position: relative;
+  z-index: 1;
+}
+
+/* Middle: players/options inset cards */
+#screenSetup .card--inset{
+  position: relative;
+  z-index: 2;
+}
+
+/* Top: footer controls (Back / Start Game) */
+#screenSetup .setupFooter{
+  position: relative;
+  z-index: 3;
+}
+
+/* =========================================================
+   Type helpers
+   ========================================================= */
+
+h1{
+  margin:0 0 6px;
+  font-size:20px;
+  text-align:center;
+}
+h2{
+  margin:0 0 6px 8px;
+  font-size:18px;
+}
+.h1like{
+  font-size:20px;
+  font-weight:800;
+}
+.small{ font-size:12px; }
+.muted{ color:var(--muted); }
+.danger{ color:var(--danger); }
+.hint{
+  color:var(--muted);
+  font-size:12px;
+  margin:6px;
+}
+
+/* =========================================================
+   Top bar (app header)
+   ========================================================= */
+
 .topbar{
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding: 8px 14px;
+  padding:8px 14px;
   border-bottom:1px solid var(--border);
 
-  /* Sticky app header */
   position:sticky;
   top:0;
   background:var(--bg);
@@ -252,26 +353,81 @@ p.welcome{
   z-index: 100; /* must be above overlay */
 }
 
+.brand__title{
+  font-size:22px;
+  font-weight:800;
+  line-height:1.05;  /* tighter to save vertical space */
+}
+
+.brand__subtitle{
+  font-size:12px;
+  color:var(--muted);
+  margin-top:2px;
+}
+
+.topbar__actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+/* Theme picker */
+.themePicker{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0;
+  margin:0;
+}
+
+/* Select styled like a button (but remains a native select for platform UX) */
+.btn.themeSelect{
+  appearance:none;
+  -webkit-appearance:none;
+  text-align:center;
+  text-align-last:center;
+
+  height: var(--topbarCtlH);
+  min-height: var(--topbarCtlH);
+
+  padding:0 14px;          /* keep modest so longer names fit */
+  line-height:1.2;         /* allow platform baseline */
+  box-sizing:border-box;
+}
+
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari: breathing room for descenders */
+  .btn.themeSelect{
+    height: calc(var(--topbarCtlH) + 2px);
+    min-height: calc(var(--topbarCtlH) + 2px);
+    padding-bottom: 2px;
+  }
+}
+
+.btn.themeSelect:focus{
+  outline:none;
+  border-color: rgb(var(--primary-rgb) / 0.8);
+  box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.18) inset;
+}
+
+/* Hamburger menu */
 .topbarMenu{
   position:relative;
-  z-index: 60; /* above overlay and menuPanel */
+  z-index:60; /* above overlay and menuPanel */
 }
 
 .topbarMenu__btn{
-  /* keep icon/text vertically centered at smaller heights */
   display:inline-flex;
   align-items:center;
   justify-content:center;
   height: var(--topbarCtlH);
   min-height: var(--topbarCtlH);
-  padding: 0 12px;             /* remove vertical padding to prevent clipping */
-  line-height: 1;
-  box-sizing: border-box;
+  padding:0 12px;          /* remove vertical padding to prevent clipping */
+  line-height:1;
+  box-sizing:border-box;
 }
 
-.topbarMenu__icon{
-  display:block;
-}
+.topbarMenu__icon{ display:block; }
 
 .menuPanel{
   position:absolute;
@@ -287,8 +443,6 @@ p.welcome{
   -webkit-tap-highlight-color:transparent;
 }
 
-.menuPanel.hidden{ display:none; }
-
 .menuPanel__section{
   display:flex;
   flex-direction:column;
@@ -301,116 +455,65 @@ p.welcome{
   border-top:1px solid var(--border);
 }
 
-.menuPanel__label{
-  margin:0 0 4px 2px;
-}
-
 .menuPanel__item{
   width:100%;
   height: var(--topbarCtlH);
   min-height: var(--topbarCtlH);
   display:flex;
   align-items:center;
-  justify-content:center; /* keeps the "button vibe" consistent */
-  padding: 0 12px;        /* prevent vertical clipping */
-  line-height: 1;
-  box-sizing: border-box;
-}
-
-.menuPanel__select{
-  width:100%;
-  text-align:center;
-  text-align-last:center;
+  justify-content:center;
+  padding:0 12px;
+  line-height:1;
+  box-sizing:border-box;
 }
 
 .menuOverlay{
   position:fixed;
   inset:0;
-  background:rgba(0,0,0,0.35); /* dim */
-  backdrop-filter: blur(4px);  /* blur (modern browsers) */
+  background:rgba(0,0,0,0.35);
+  backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
   z-index:90; /* below menuPanel */
   opacity:0;
   transition: opacity .15s ease;
 }
 
-.menuOverlay.open{
-  opacity:1;
-}
+.menuOverlay.open{ opacity:1; }
 
-.menuOverlay.hidden{
-  display:none;
-}
+/* =========================================================
+   Buttons
+   ========================================================= */
 
-.brand__title{
-  font-size:22px;
-  font-weight:800;
-  line-height: 1.05;  /* tighter to save vertical space */
-}
-
-.brand__subtitle{
-  font-size:12px;
-  color:var(--muted);
-  margin-top: 2px;    /* helps keep stack compact */
-}
-
-.topbar__actions{
-  display:flex;
-  align-items: center;
-  gap:8px;
-}
-
-/* ---------- Layout Containers ---------- */
-.container{
-  max-width:860px;
-  margin:0 auto;
-  padding:0 8px
-}
-.screen{padding:10px 0}
-.hidden{display:none!important}
-
-/* ---------- Cards ---------- */
-.card{
-  background:var(--card);
+.btn{
+  appearance:none;
   border:1px solid var(--border);
-  border-radius:16px;
-  padding:8px;
-  box-shadow: 0 8px 16px rgba(0,0,0,.25);
+  background:var(--surface);
+  color:var(--text);
+  padding:10px 12px;
+  border-radius:12px;
+  font-size:15px;
+  font-weight:500;
+  cursor:pointer;
 }
-.card--inset{
-  background:var(--card2);
-  margin-top:8px;
+.btn:disabled{ opacity:.45; cursor:not-allowed; }
+.btn--ghost{ background:transparent; }
+.btn--primary{ border-color:rgb(var(--primary-rgb) / 0.6); background:rgb(var(--primary-rgb) / 0.12); }
+/* Setup override: make Start Game solid */
+#screenSetup .setupFooter #btnStartGame.btn--primary{
+  background: var(--surface);
+}
+.btn--danger{ border-color:rgb(var(--danger-rgb) / 0.6); background:rgb(var(--danger-rgb) / 0.12); }
+
+/* Start screen only: bigger buttons without affecting the rest of the app */
+.startActions .btn{
+  padding:16px 14px;
+  font-size:16px;
+  border-radius:14px;
 }
 
-/* ---------- Typography Helpers ---------- */
-h1{
-  margin:0 0 8px;
-  font-size:20px;
-  text-align:center;
-}
-h2{
-  margin:0 0 6px 8px;
-  font-size:18px
-}
-.h1like{
-  font-size:20px;
-  font-weight:800;
-}
-.center{text-align:center}
-.small{font-size:12px}
-.muted{color:var(--muted)}
-.danger{color:var(--danger)}
-.hint{
-  color:var(--muted);
-  font-size:12px;
-  margin:6px;
-}
-
-/* ---------- Flex / Spacing Helpers ---------- */
-.stack{display:flex;flex-direction:column;gap:8px}
-.row{display:flex;gap:8px}
-.row--between{justify-content:space-between}
-.row--center{align-items:center}
+/* =========================================================
+   Banners / one-offs
+   ========================================================= */
 
 /* PWA update banner (shows when a new SW is waiting) */
 .updateBanner{
@@ -430,49 +533,54 @@ h2{
   border: 1px solid var(--border);
   border-radius: 12px;
 }
-/* =========================================================
-   Donation Block (shown on start screen only)
-   ========================================================= */
 
-.donate-block {
-  margin: 32px 0 2px 0;
-  text-align: center;
-  padding: 16px 16px 24px;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  background: rgb(var(--primary-rgb) / 0.1); /* subtle tinted background */
+/* Donation block (load screen) */
+.donate-block{
+  margin:32px 0 2px 0;
+  text-align:center;
+  padding:16px 16px 24px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background: rgb(var(--primary-rgb) / 0.1);
 }
 
-.donate-text p {
-  opacity: 0.8;
-  padding: 0px;
+/* HTML uses <p class="donate-text">…</p> */
+.donate-text{
+  opacity:0.8;
+  margin:0 0 10px 0;
 }
 
-.donate-button {
-  display: inline-block;
-  padding: 10px 18px;
-  background-color: rgb(var(--primary-rgb) / 0.8); /* or your app accent color */
+.donate-button{
+  display:inline-block;
+  padding:10px 18px;
+  background-color: rgb(var(--primary-rgb) / 0.8);
   color: var(--text);
   border-radius: 8px;
-  text-decoration: none;
-  font-weight: 600;
+  text-decoration:none;
+  font-weight:600;
   transition: transform 0.1s ease, opacity 0.2s ease;
 }
-
-.donate-button:hover {
-  opacity: 0.9;
+.donate-button:hover{
+  opacity:0.9;
   transform: translateY(-1px);
 }
-
-.donate-button:active {
+.donate-button:active{
   transform: translateY(0);
 }
 
-
 /* =========================================================
-   Setup Screen: Segmented selectors (players / holes)
+   Setup screen
    ========================================================= */
-   .segmented{
+
+/* Setup: Players + Holes side-by-side (overrides base formGrid) */
+#screenSetup .formGrid{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+  align-items:start;
+}
+
+.segmented{
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:8px;
@@ -496,23 +604,13 @@ h2{
 }
 
 .segBtn--disabled{
-  opacity: .5;
-  cursor: not-allowed;
+  opacity:.5;
+  cursor:not-allowed;
 }
 
-:root{
-  --setupPickBtnH: 110px; /* tweak later */
-}
-
-/* Setup screen: make the segmented pickers tall + balanced */
-#playerCountBtns .segBtn{
-  min-height: var(--setupPickBtnH);
-}
-
-/* Holes are 2 rows; each button is ~half the height (account for the 8px gap) */
-#holeCountBtns .segBtn{
-  min-height: calc((var(--setupPickBtnH) - 8px) / 2);
-}
+/* Setup segmented pickers: taller + balanced */
+#playerCountBtns .segBtn{ min-height: var(--setupPickBtnH); }
+#holeCountBtns .segBtn{ min-height: calc((var(--setupPickBtnH) - 8px) / 2); }
 
 #playerCountBtns .segBtn,
 #holeCountBtns .segBtn{
@@ -522,96 +620,19 @@ h2{
 }
 
 /* =========================================================
-   Buttons
-   ========================================================= */
-.btn{
-  appearance:none;
-  border:1px solid var(--border);
-  background:var(--surface);
-  color:var(--text);
-  padding:10px 12px;
-  border-radius:12px;
-  font-size: 15px;
-  font-weight:500;
-  cursor:pointer;
-}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn--ghost{background:transparent}
-.btn--primary{border-color:rgb(var(--primary-rgb) / 0.6); background:rgb(var(--primary-rgb) / 0.12)}
-.btn--danger{border-color:rgb(var(--danger-rgb) / 0.6); background:rgb(var(--danger-rgb) / 0.12)}
-
-/* Start screen only: bigger buttons without affecting the rest of the app */
-.startActions .btn{
-  padding:16px 14px;
-  font-size:16px;
-  border-radius:14px;
-}
-
-/* ---------- Theme picker (top bar) ---------- */
-
-.themePicker{
-  display:flex;
-  align-items:center;
-  gap:8px;
-  padding:0;
-  margin:0;
-}
-
-/* base (all platforms) */
-
-.themeSelect{
-  appearance:none;
-  -webkit-appearance:none;
-  text-align:center;
-  text-align-last:center;
-
-  height: var(--topbarCtlH);
-  min-height: var(--topbarCtlH);
-
-  padding: 0 14px;     /* keep this modest so “Cotton Candy” doesn’t get tight */
-  line-height: 1.2; /* let iOS choose its baseline */
-  box-sizing: border-box;
-
-  position: static;
-  top: auto;
-}
-
-/* iOS Safari only: add breathing room for descenders */
-@supports (-webkit-touch-callout: none) {
-  .themeSelect{
-    height: calc(var(--topbarCtlH) + 2px);
-    min-height: calc(var(--topbarCtlH) + 2px);
-    padding-bottom: 2px;  /* the actual “fix” */
-  }
-}
-
-/* Match hamburger height (do NOT force select height here) */
-.topbarMenu__btn{
-  height: var(--topbarCtlH);
-  min-height: var(--topbarCtlH);
-}
-
-.themeSelect:focus{
-  outline:none;
-  border-color: rgb(var(--primary-rgb) / 0.8);
-  box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.18) inset;
-}
-
-/* =========================================================
    Forms
    ========================================================= */
+
 .formGrid{
   display:grid;
   grid-template-columns:1fr;
   gap:8px;
 }
 @media (min-width:700px){
-  .formGrid{grid-template-columns:1fr 1fr}
+  .formGrid{ grid-template-columns:1fr 1fr; }
 }
 
-.field{
-  margin-bottom: 10px;
-} 
+.field{ margin-bottom:10px; }
 
 .field label{
   display:block;
@@ -620,8 +641,8 @@ h2{
   margin:0 0 6px 6px;
 }
 
-/* Base inputs (kept for any future selects/inputs) */
-.field input,.field select{
+.field input,
+.field select{
   width:100%;
   padding:10px 12px;
   border-radius:12px;
@@ -641,14 +662,79 @@ h2{
   font-size:14px;
 }
 
-/* Give the Players header row a bit of separation from inputs */
 .setupPlayersHeader{ margin-bottom:10px; }
 
 /* Footer spacing so buttons don't crowd the Options card */
-.setupFooter{ margin:8px 0px 4px; }
-.gameFooter{ margin:8px 0px 4px; }
+.setupFooter{ margin:8px 0 4px; }
+.gameFooter{ margin:8px 0 4px; }
 
-/* Bottom bar on game screen */
+/* =========================================================
+   Checkbox rows (custom styled)
+   ========================================================= */
+
+.check{
+  padding:6px 10px 6px 4px;
+  display:flex;
+  gap:10px;
+  align-items:center;
+  cursor:pointer;
+  user-select:none;
+  position:relative;
+}
+
+.check input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.check span{
+  position:relative;
+  padding-left:28px;
+}
+
+/* box */
+.check span::before{
+  content:"";
+  position:absolute;
+  left:0;
+  top:50%;
+  transform: translateY(-50%);
+  width:18px;
+  height:18px;
+  border:2px solid var(--border);
+  border-radius:6px;
+  background: var(--card);
+  transition: all 0.15s ease;
+}
+
+/* check mark */
+.check span::after{
+  content:"";
+  position:absolute;
+  left:5px;
+  top:45%;
+  transform: translateY(-50%) rotate(-45deg) scale(0);
+  width:11px;
+  height:5px;
+  border:2px solid var(--text);
+  border-top:none;
+  border-right:none;
+  transition: transform 0.25s ease;
+}
+
+.check input[type="checkbox"]:checked + span::after{
+  transform: translateY(-50%) rotate(-45deg) scale(1);
+}
+
+.check:hover span::before{
+  border-color: var(--primary);
+}
+
+/* =========================================================
+   Game screen: nav / footer + layering
+   ========================================================= */
+
 .gameFooterBar{
   display:flex;
   align-items:center;
@@ -663,16 +749,16 @@ h2{
   min-width:0;
 }
 
-/* ---- 2-row footer layout ---- */
+/* 2-row footer layout */
 .gameFooterBar.gameFooter--2row{
   flex-direction:column;
-  align-items:stretch; /* important: let inner grids span full width */
+  align-items:stretch;
   gap:8px;
 }
 
 .gameFooterBar.gameFooter--2row .gameFooter__nav{
   display:grid;
-  grid-template-columns: var(--navBtnW) 1fr var(--navBtnW); /* prev / center / next */
+  grid-template-columns: var(--navBtnW) 1fr var(--navBtnW);
   gap:8px;
   align-items:center;
 }
@@ -695,98 +781,22 @@ h2{
   text-overflow:ellipsis;
 }
 
-/* Setup: Players + Holes side-by-side by default */
-#screenSetup .formGrid{
-  display:grid;
-  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
-  gap:8px;
-  align-items:start;
-}
-
-/* =========================================================
-   Checkbox rows (custom styled)
-   ========================================================= */
-.check {
-  padding: 6px 10px 6px 4px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  cursor: pointer;
-  user-select: none;
-  position: relative;
-}
-
-.check input {
-  position: absolute;
-  opacity: 0;
-  pointer-events: none;
-}
-
-.check span {
-  position: relative;
-  padding-left: 28px;
-}
-
-/* box */
-.check span::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  border: 2px solid var(--border);
-  border-radius: 6px;
-  background: var(--card);
-  transition: all 0.15s ease;
-}
-
-/* check mark */
-.check span::after {
-  content: "";
-  position: absolute;
-  left: 5px;
-  top: 45%;
-  transform: translateY(-50%) rotate(-45deg) scale(0);
-  width: 11px;
-  height: 5px;
-  border: 2px solid var(--text);
-  border-top: none;
-  border-right: none;
-  transition: transform 0.25s ease;
-}
-
-/* checked state */
-.check input[type="checkbox"]:checked + span::after {
-  transform: translateY(-50%) rotate(-45deg) scale(1);
-}
-
-/* hover */
-.check:hover span::before {
-  border-color: var(--accent);
-}
-
-/* -----------------------------
-   Game nav layering + sizing
-   ----------------------------- */
-
+/* Sticky hole bar */
 .stickyHoleBar{
   position:sticky;
   top:60px;         /* sits below the topbar */
-  z-index:20;        /* above inset cards/shadows */
+  z-index:20;       /* above inset cards/shadows */
   background:var(--card);
-  padding-bottom:0px;
+  padding-bottom:0;
 }
 
-/* Top sticky bar Prev/Next */
 .stickyHoleBar #btnPrevHole,
 .stickyHoleBar #btnNextHole{
   width: var(--navBtnW);
   flex: 0 0 var(--navBtnW);
 }
 
-/* Create predictable stacking inside Game card */
+/* Predictable stacking inside Game card */
 #screenGame .card{
   position: relative;
   isolation: isolate;
@@ -800,35 +810,20 @@ h2{
 
 /* Bottom nav above inset shadows */
 #screenGame .gameFooterBar{
-  position: relative;   /* makes z-index work */
+  position: relative;
   z-index: 20;
-  background: transparent; /* do NOT block shadows with a big slab */
+  background: transparent;
 }
 
 /* Keep the buttons above */
-#screenGame .gameFooterBar .btn{
-  position: relative;
-  z-index: 1;
-}
-
-/* Shadow “mask” that sits ONLY inside the button shape.
-   This preserves your real button border completely. */
-#screenGame .gameFooterBar .btn::before{
-  content:"";
-  position:absolute;
-  inset:0;                 /* IMPORTANT: do NOT extend past the border */
-  border-radius: inherit;
-  background: var(--card); /* matches the main card behind the footer */
-  z-index:-1;
-  pointer-events:none;
-}
-
-/* Top sticky bar buttons sit above inset shadows */
+#screenGame .gameFooterBar .btn,
 #screenGame .stickyHoleBar .btn{
   position: relative;
   z-index: 1;
 }
 
+/* Shadow “mask” sits ONLY inside the button shape (preserves border) */
+#screenGame .gameFooterBar .btn::before,
 #screenGame .stickyHoleBar .btn::before{
   content:"";
   position:absolute;
@@ -840,8 +835,9 @@ h2{
 }
 
 /* =========================================================
-   Order List
+   Lists + tags
    ========================================================= */
+
 .orderList{
   margin:0;
   padding-left:28px;
@@ -849,7 +845,7 @@ h2{
 
 /* Reduced vertical padding to minimize scrolling */
 .orderList li{
-  min-width: 180px;
+  min-width:180px;
   padding:3px 0;
 }
 
@@ -863,27 +859,27 @@ h2{
   border-radius:2px;
   font-weight:900;
 }
+
 .tag--piggie{
-  background:#ffb3c7;     /* pink */
-  color:#2b3136;          /* dark grey */
+  background:#ffb3c7;
+  color:#2b3136;
 }
 
 .tag--wolfpack{
   background:var(--primary);
-  /* same styling as default .tag (wolf) */
 }
-
 
 /* =========================================================
    Pills (partner selection + result selection)
    ========================================================= */
+
 .pillGrid{
   display:grid;
   grid-template-columns:repeat(2, minmax(0,1fr));
   gap:8px;
 }
 @media (min-width:520px){
-  .pillGrid{grid-template-columns:repeat(3, minmax(0,1fr))}
+  .pillGrid{ grid-template-columns:repeat(3, minmax(0,1fr)); }
 }
 
 .pill{
@@ -902,14 +898,16 @@ h2{
 }
 
 /* =========================================================
-   Table (Scoreboard)
+   Tables (scoreboard)
    ========================================================= */
+
 .table{
   width:100%;
   border-collapse:collapse;
   font-size:14px;
 }
-.table th,.table td{
+.table th,
+.table td{
   border-bottom:1px solid var(--border);
   padding:10px 8px;
   text-align:left;
@@ -919,6 +917,8 @@ h2{
   font-size:12px;
   font-weight:800;
 }
+
+/* Hole mini grid (scoreboard per-hole deltas) */
 .holeMini{
   margin-top:8px;
   display:grid;
@@ -939,18 +939,19 @@ h2{
   font-weight:800;
 }
 
-.holeMini__delta.isPlus{ color: var(--accent); }
+.holeMini__delta.isPlus{ color: var(--primary); }
 .holeMini__delta.isMinus{ color: var(--danger); }
-
 
 /* =========================================================
    Holes list (edit hole from scoreboard)
    ========================================================= */
+
 .holesList{
   display:flex;
   flex-direction:column;
   gap:8px;
 }
+
 .holeRow{
   display:flex;
   justify-content:space-between;
@@ -960,19 +961,17 @@ h2{
   border-radius:12px;
   background:var(--surface);
 
-  /* mobile tap affordance */
   cursor:pointer;
   user-select:none;
   -webkit-tap-highlight-color:transparent;
   transition:transform .08s ease;
 }
-.holeRow:active{
-  transform:translateY(1px);
-}
+.holeRow:active{ transform: translateY(1px); }
 
 /* =========================================================
    Modal (Rules)
    ========================================================= */
+
 .modal{
   border:none;
   border-radius:16px;
@@ -981,27 +980,27 @@ h2{
   width:92%;
   background:transparent;
 }
-.modal::backdrop{background:rgba(0,0,0,.6)}
+.modal::backdrop{ background:rgba(0,0,0,.6); }
+
 .modal__inner{
   background:var(--card);
   border:1px solid var(--border);
   border-radius:16px;
   padding:12px;
-
-  max-height: 85vh;
-  overflow-y: auto;
+  max-height:85vh;
+  overflow-y:auto;
 }
+
 .rules ul{
-  margin:10px 0 0 0px;
+  margin:10px 0 0 0;
   line-height:1.2;
 }
 .rules li{
   margin:0 12px 6px -12px;
-  font-weight: 300;
+  font-weight:300;
 }
-.rules b{
-  font-weight: 700;
-}
+.rules b{ font-weight:700; }
 
-/* Rules modal readability: force white text even if browser default styles vary */
-.rules, .rules *{ color: var(--text); }
+/* Force theme text color inside dialog across browsers */
+.rules,
+.rules *{ color: var(--text); }

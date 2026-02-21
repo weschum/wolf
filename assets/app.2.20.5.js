@@ -677,6 +677,11 @@
         btn.dataset.pid = pid;
         btn.textContent = idToName(pid);
 
+        // Persist selected partner state on re-render
+        if (hole.partnerId === pid) {
+          btn.classList.add('pill--active');
+        }
+
         btn.addEventListener('click', () => {
           const h = game.holes[game.currentHoleIndex];
           if (h.blind || h.loneWolf) return;
@@ -685,8 +690,9 @@
           h.partnerId = pid;
           saveGame();
 
-          setPillActive(pb, (b) => b.dataset.pid === pid);
-          refreshDirtyState();
+          // Re-render so order tags update immediately (Wolf Pack / Piggie)
+          // and buttons reflect the current selection.
+          renderGameScreen();
         });
 
         pb.appendChild(btn);
@@ -850,9 +856,7 @@
     }));
 
     const tableHtml = `
-      <div class="row row--between row--center" style="margin-bottom:10px">
-        <h2 style="margin:0">${holesScoredCount} holes scored</h2>
-      </div>
+      <h2 style="margin-left: 8px;">${holesScoredCount} holes scored</h2>
 
       <table class="table">
         <thead>
@@ -1349,12 +1353,9 @@
       clearEditBaselineForCurrentHole();
       refreshDirtyState();
 
-      // Auto-advance if not last hole
-      if (game.currentHoleIndex < game.holeCount - 1) {
-        goToHole(game.currentHoleIndex + 1);
-      } else {
-        renderGameScreen();
-      }
+      // Stay on this hole; Next is handled by the Next button(s)
+      renderGameScreen();
+
     });
 
     $('btnViewScores')?.addEventListener('click', () => {
