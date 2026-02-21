@@ -6,7 +6,7 @@
   <title>Wolf Disc Golf Scoring</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/styles.2.20.2.css" />
+  <link rel="stylesheet" href="./assets/styles.2.20.3.css" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
   
@@ -141,18 +141,17 @@
         <h1>Game Setup</h1>
 
         <div class="formGrid">
-          <div class="field">
-            <label>Select the number of players</label>
+          <div class="card field">
+            <label style="text-align: center;">Number of players</label>
             <div id="playerCountBtns" class="segmented" role="group" aria-label="Number of players">
               <button type="button" class="segBtn" data-value="4">4</button>
               <button type="button" class="segBtn" data-value="5">5</button>
             </div>
           </div>
 
-          <div class="field">
-            <label>Select the number of holes (multiple of player count)</label>
+          <div class="card field">
+            <label style="text-align: center;">Number of holes</label>
             <div id="holeCountBtns" class="segmented" role="group" aria-label="Number of holes"></div>
-            <div style="text-align:center" class="hint"></div>
           </div>
         </div>
 
@@ -307,6 +306,6 @@
 
   <div id="menuOverlay" class="menuOverlay hidden"></div>
 
-  <script defer src="./assets/app.2.20.2.js"></script>
+  <script defer src="./assets/app.2.20.3.js"></script>
 </body>
 </html>

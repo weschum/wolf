@@ -472,7 +472,7 @@ h2{
 /* =========================================================
    Setup Screen: Segmented selectors (players / holes)
    ========================================================= */
-.segmented{
+   .segmented{
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));
   gap:8px;
@@ -498,6 +498,27 @@ h2{
 .segBtn--disabled{
   opacity: .5;
   cursor: not-allowed;
+}
+
+:root{
+  --setupPickBtnH: 110px; /* tweak later */
+}
+
+/* Setup screen: make the segmented pickers tall + balanced */
+#playerCountBtns .segBtn{
+  min-height: var(--setupPickBtnH);
+}
+
+/* Holes are 2 rows; each button is ~half the height (account for the 8px gap) */
+#holeCountBtns .segBtn{
+  min-height: calc((var(--setupPickBtnH) - 8px) / 2);
+}
+
+#playerCountBtns .segBtn,
+#holeCountBtns .segBtn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
 }
 
 /* =========================================================
@@ -575,12 +596,6 @@ h2{
   border-color: rgb(var(--primary-rgb) / 0.8);
   box-shadow: 0 0 0 2px rgb(var(--primary-rgb) / 0.18) inset;
 }
-
-/* On very small screens, hide the "Theme" label to save space */
-@media (max-width:420px){
-  .themePicker__label{display:none}
-}
-
 
 /* =========================================================
    Forms
@@ -680,6 +695,13 @@ h2{
   text-overflow:ellipsis;
 }
 
+/* Setup: Players + Holes side-by-side by default */
+#screenSetup .formGrid{
+  display:grid;
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+  align-items:start;
+}
 
 /* =========================================================
    Checkbox rows (custom styled)

@@ -522,7 +522,7 @@
 
     wrap.innerHTML = '';
 
-    const suggested = playerCount === 4 ? [8, 12, 16, 20] : [10, 15, 20];
+    const suggested = playerCount === 4 ? [8, 12, 16, 20] : [10, 15, 20, 25];
     suggested.forEach(v => {
       const btn = document.createElement('button');
       btn.type = 'button';
