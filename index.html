@@ -6,7 +6,7 @@
   <title>Wolf Disc Golf Scoring</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/styles.2.20.6.css" />
+  <link rel="stylesheet" href="./assets/styles.2.20.7.css" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
   
@@ -142,7 +142,7 @@
 
         <div class="formGrid">
           <div class="card field">
-            <label style="text-align: center;">Number of players</label>
+            <label class="field__label--center">Number of players</label>
             <div id="playerCountBtns" class="segmented" role="group" aria-label="Number of players">
               <button type="button" class="segBtn" data-value="4">4</button>
               <button type="button" class="segBtn" data-value="5">5</button>
@@ -150,7 +150,7 @@
           </div>
 
           <div class="card field">
-            <label style="text-align: center;">Number of holes</label>
+            <label class="field__label--center">Number of holes</label>
             <div id="holeCountBtns" class="segmented" role="group" aria-label="Number of holes"></div>
           </div>
         </div>
@@ -255,7 +255,7 @@
     <section id="screenScoreboard" class="screen hidden">
       <div class="card">
         <div class="row row--between row--center">
-          <h1 style="padding-left: 12px;">Scoreboard</h1>
+          <h1 class="scoreboardTitle">Scoreboard</h1>
           <button id="btnBackToGame" class="btn" type="button">Back</button>
         </div>
 
@@ -305,6 +305,6 @@
 
   <div id="menuOverlay" class="menuOverlay hidden"></div>
 
-  <script defer src="./assets/app.2.20.6.js"></script>
+  <script defer src="./assets/app.2.20.7.js"></script>
 </body>
 </html>

@@ -641,6 +641,11 @@ h2{
   margin:0 0 6px 6px;
 }
 
+/* Was inline style="" (blocked by the CSP's style-src 'self') */
+.field__label--center{ text-align:center; }
+.scoreboardTitle{ padding-left:12px; }
+.scoreSummary{ margin-left:8px; }
+
 .field input,
 .field select{
   width:100%;

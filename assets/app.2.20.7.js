@@ -887,7 +887,7 @@
     }));
 
     const tableHtml = `
-      <h2 style="margin-left: 8px;">${holesScoredCount} holes scored</h2>
+      <h2 class="scoreSummary">${holesScoredCount} holes scored</h2>
 
       <table class="table">
         <thead>
@@ -1046,15 +1046,23 @@
     }
 
     navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data?.type === 'VERSION' && versionEl) {
+      // Fallback only: the loaded script's filename is the source of truth.
+      // An older SW still in control would otherwise report its own version.
+      if (event.data?.type === 'VERSION' && versionEl && !versionEl.textContent.trim()) {
         // SW sends "v2.17.2" already
         versionEl.textContent = ` ${event.data.version}`;
       }
     });
 
+    // The first SW install claims this page, which also fires controllerchange.
+    // Only reload when an existing controller is replaced (i.e. a real update).
+    let hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!hadController) {
+        hadController = true;
+        return;
+      }
       hideUpdateBanner();
-      requestSwVersion();
       window.location.reload();
     });
 
@@ -1119,40 +1127,61 @@
     if ($('btnResume')) $('btnResume').disabled = !has;
   }
 
+  // Bound once from bindUI (initSetupUI runs on every visit to setup)
+  function bindPlayerCountButtons() {
+    const pcb = $('playerCountBtns');
+    if (!pcb) return;
+
+    qsa('.segBtn', pcb).forEach(btn => {
+      btn.addEventListener('click', () => {
+        const pc = Number(btn.dataset.value);
+
+        const existingNames = qsa('.playerNameInput').length
+          ? buildPlayersFromInputs().map(p => p.name)
+          : (game.players?.map(p => p.name) ?? []);
+
+        game.playerCount = pc;
+        game.players = Array.from({ length: pc }).map((_, i) => ({
+          id: `p${i + 1}`,
+          name: existingNames[i] ?? `Player ${i + 1}`,
+        }));
+
+        setSegmentActive(pcb, pc);
+        renderHoleOptionsButtons(pc, game.holeCount);
+        renderPlayerInputs();
+        saveGame();
+      });
+    });
+  }
+
   function initSetupUI() {
     if (!game) game = newGameTemplate();
 
-    const pcb = $('playerCountBtns');
-    if (pcb) {
-      qsa('.segBtn', pcb).forEach(btn => {
-        btn.addEventListener('click', () => {
-          const pc = Number(btn.dataset.value);
-
-          const existingNames = qsa('.playerNameInput').length
-            ? buildPlayersFromInputs().map(p => p.name)
-            : (game.players?.map(p => p.name) ?? []);
-
-          game.playerCount = pc;
-          game.players = Array.from({ length: pc }).map((_, i) => ({
-            id: `p${i + 1}`,
-            name: existingNames[i] ?? `Player ${i + 1}`,
-          }));
-
-          setSegmentActive(pcb, pc);
-          renderHoleOptionsButtons(pc, game.holeCount);
-          renderPlayerInputs();
-          saveGame();
-        });
-      });
-
-      setSegmentActive(pcb, game.playerCount);
-    }
-
+    setSegmentActive($('playerCountBtns'), game.playerCount);
     renderHoleOptionsButtons(game.playerCount, game.holeCount);
     renderPlayerInputs();
   }
 
+  // Undo everything openEditSettings() changes on the setup screen
+  function exitEditSettingsMode() {
+    isEditingSettings = false;
+    pendingHoleCount = null;
+
+    $('btnRandomize')?.classList.remove('hidden');
+    if ($('btnStartGame')) $('btnStartGame').textContent = 'Start Game';
+
+    const pcb = $('playerCountBtns');
+    if (pcb) {
+      qsa('.segBtn', pcb).forEach(btn => {
+        btn.disabled = false;
+        btn.classList.remove('segBtn--disabled');
+      });
+    }
+  }
+
   function bindUI() {
+    bindPlayerCountButtons();
+
     $('btnRules')?.addEventListener('click', () => $('rulesDialog')?.showModal());
     $('btnCloseRules')?.addEventListener('click', () => $('rulesDialog')?.close());
 
@@ -1167,8 +1196,7 @@
       // If there's no active game loaded, just go to setup normally
       const loaded = game || loadGame();
       if (!loaded) {
-        isEditingSettings = false;
-        $('btnRandomize')?.classList.remove('hidden');
+        exitEditSettingsMode();
 
         showScreen(SCREENS.setup);
         initSetupUI();
@@ -1194,22 +1222,12 @@
       game = newGameTemplate();
       showScreen(SCREENS.setup);
 
-      isEditingSettings = false;
-      $('btnRandomize')?.classList.remove('hidden');
+      exitEditSettingsMode();
 
       if ($('optPushTies')) $('optPushTies').checked = false;
       if ($('optBlindWolf')) $('optBlindWolf').checked = false;
 
       initSetupUI();
-
-      // Ensure player count buttons are enabled for new game
-      const pcb = $('playerCountBtns');
-      if (pcb) {
-        qsa('.segBtn', pcb).forEach(btn => {
-          btn.disabled = false;
-          btn.classList.remove('segBtn--disabled');
-        });
-      }
     });
 
     $('btnResume')?.addEventListener('click', () => {
@@ -1282,7 +1300,11 @@
       }
     });
 
-    $('btnBackToLoad')?.addEventListener('click', () => showScreen(SCREENS.load));
+    $('btnBackToLoad')?.addEventListener('click', () => {
+      // Leaving Edit Settings without saving: discard edit mode
+      exitEditSettingsMode();
+      showScreen(SCREENS.load);
+    });
 
     $('btnRandomize')?.addEventListener('click', () => {
       const inputs = qsa('.playerNameInput');
@@ -1297,8 +1319,7 @@
         const ok = applySettingsFromSetup();
         if (!ok) return;
 
-        isEditingSettings = false;
-        if ($('btnStartGame')) $('btnStartGame').textContent = 'Start Game';
+        exitEditSettingsMode();
 
         showScreen(SCREENS.game);
         renderGameScreen();
@@ -1434,9 +1455,10 @@
       }
     }
 
-    const match = src.match(/app\.(v[\d.]+)\.js/);
+    // Filenames are app.2.20.7.js (older builds used app.v2.20.7.js)
+    const match = src.match(/app\.v?(\d+(?:\.\d+)+)\.js/);
     if (match && match[1]) {
-      versionEl.textContent = ` ${match[1]}`;
+      versionEl.textContent = ` v${match[1]}`;
     }
   }
 
