@@ -240,11 +240,7 @@
     const hc = Number(pendingHoleCount ?? game?.holeCount ?? (pc === 4 ? 12 : 15));
     const newPlayers = buildPlayersFromInputs();
 
-    // Basic validation
-    if (newPlayers.some(p => !p.name)) {
-      alert('Please enter all player names.');
-      return false;
-    }
+    if (!validatePlayerNames(newPlayers)) return false;
 
     // Shrinking the round drops holes past the new count; warn if any were played
     const droppedScored = (game.holes ?? [])
@@ -594,8 +590,27 @@
     const inputs = qsa('.playerNameInput');
     return inputs.map((inp, i) => ({
       id: `p${i + 1}`,
-      name: (inp.value || `Player ${i + 1}`).trim(),
+      name: inp.value.trim() || `Player ${i + 1}`,
     }));
+  }
+
+  // Alerts and returns false if names can't be told apart on the scorecard
+  function validatePlayerNames(players) {
+    if (players.some(p => !p.name)) {
+      alert('Please enter all player names.');
+      return false;
+    }
+
+    const seen = new Set();
+    for (const p of players) {
+      const key = p.name.toLowerCase();
+      if (seen.has(key)) {
+        alert(`Each player needs a different name.\n\n"${p.name}" is used more than once.`);
+        return false;
+      }
+      seen.add(key);
+    }
+    return true;
   }
 
   // -----------------------------
@@ -873,9 +888,54 @@
   // -----------------------------
   // UI: Scoreboard
   // -----------------------------
+  function renderFinishStatus() {
+    const el = $('finishStatus');
+    if (!el) return;
+    el.textContent = game.finishedAt
+      ? `Finished at ${new Date(game.finishedAt).toLocaleString()}`
+      : '';
+  }
+
+  // Finish Game summary: Net per player, best first
+  function renderFinishSummary() {
+    const { totals, holesScoredCount } = computeScores(game);
+
+    const meta = $('finishMeta');
+    if (meta) {
+      const unscored = game.holeCount - holesScoredCount;
+      meta.textContent = `${holesScoredCount} of ${game.holeCount} holes scored` +
+        (unscored > 0 ? ` (${unscored} not scored)` : '');
+    }
+
+    const tbody = $('finishRows');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+
+    game.players
+      .map(p => ({ name: p.name, net: totals[p.id] ?? 0 }))
+      .sort((a, b) => b.net - a.net)
+      .forEach(r => {
+        const tr = document.createElement('tr');
+
+        const name = document.createElement('td');
+        name.textContent = r.name;
+
+        const net = document.createElement('td');
+        net.className = 'finishSummary__net';
+        if (r.net > 0) net.classList.add('isPlus');
+        if (r.net < 0) net.classList.add('isMinus');
+        net.textContent = r.net > 0 ? `+${formatPoints(r.net)}` : formatPoints(r.net);
+
+        tr.append(name, net);
+        tbody.appendChild(tr);
+      });
+  }
+
   function renderScoreboard() {
     ensureHolesLength();
     const { totals, won, lost, holesScoredCount, perHole } = computeScores(game);
+
+    renderFinishStatus();
 
     // --- Totals card: "# holes scored" + table headers Player/Won/Lost/Net ---
     const rows = game.players.map(p => ({
@@ -1247,67 +1307,6 @@
       renderGameScreen();
     });
 
-    // ✅ Start screen only: manual "Check for update" (iOS-friendly + user feedback)
-    $('btnCheckUpdate')?.addEventListener('click', async () => {
-      const btn = $('btnCheckUpdate');
-      const originalLabel = btn?.textContent || 'Check for update';
-
-      const setBusy = (busy) => {
-        if (!btn) return;
-        btn.disabled = !!busy;
-        btn.textContent = busy ? 'Checking…' : originalLabel;
-      };
-
-      try {
-        setBusy(true);
-
-        // Find the SW registration (getRegistration is usually enough, but iOS can be weird)
-        let reg = await navigator.serviceWorker.getRegistration();
-        if (!reg) {
-          const regs = await navigator.serviceWorker.getRegistrations();
-          reg = regs?.[0] || null;
-        }
-
-        if (!reg) {
-          alert('Offline cache is not enabled (no service worker registered).');
-          return;
-        }
-
-        // If a saved game exists, confirm before applying updates (reload)
-        const hasSavedGame = !!localStorage.getItem(STORAGE_KEY);
-        if (hasSavedGame) {
-          const ok = confirm(
-            'A game is saved on this device.\n\nChecking for updates is safe, but applying an update will reload the app.\n\nContinue?'
-          );
-          if (!ok) return;
-        }
-
-        // Force an update check
-        await reg.update();
-
-        // iOS often needs a moment before "waiting" appears
-        await new Promise(r => setTimeout(r, 1200));
-
-        // Re-read registration to see if update is waiting
-        const reg2 = await navigator.serviceWorker.getRegistration() || reg;
-
-        if (reg2?.waiting) {
-          const apply = confirm('Update found. Apply now? (The app will reload)');
-          if (!apply) return;
-
-          reg2.waiting.postMessage({ type: 'SKIP_WAITING' });
-          // controllerchange listener will reload
-          return;
-        }
-
-        alert('No update found.');
-      } catch (e) {
-        alert('Update check failed. Try again when you have a connection.');
-      } finally {
-        setBusy(false);
-      }
-    });
-
     $('btnBackToLoad')?.addEventListener('click', () => {
       // Leaving Edit Settings without saving: discard edit mode
       exitEditSettingsMode();
@@ -1339,10 +1338,7 @@
       const hc = Number(game?.holeCount ?? (pc === 4 ? 12 : 15));
 
       const players = buildPlayersFromInputs();
-      if (players.some(p => !p.name)) {
-        alert('Please enter all player names.');
-        return;
-      }
+      if (!validatePlayerNames(players)) return;
 
       game.playerCount = pc;
       game.players = players;
@@ -1433,8 +1429,12 @@
     $('btnFinishGame')?.addEventListener('click', () => {
       game.finishedAt = new Date().toISOString();
       saveGame();
-      if ($('finishStatus')) $('finishStatus').textContent = `Finished at ${new Date(game.finishedAt).toLocaleString()}`;
+      renderFinishStatus();
+      renderFinishSummary();
+      $('finishDialog')?.showModal();
     });
+
+    $('btnCloseFinish')?.addEventListener('click', () => $('finishDialog')?.close());
 
     $('btnNewFromScoreboard')?.addEventListener('click', () => {
       if (confirm('Start a new game? This will overwrite the saved game on this device.')) {

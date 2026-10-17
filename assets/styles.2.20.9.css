@@ -1009,3 +1009,27 @@ h2{
 /* Force theme text color inside dialog across browsers */
 .rules,
 .rules *{ color: var(--text); }
+
+/* =========================================================
+   Modal (Finish Game summary)
+   ========================================================= */
+
+.modal--narrow{ max-width:420px; }
+
+.finishSummary,
+.finishSummary *{ color: var(--text); }
+.finishSummary .muted{ color: var(--muted); }
+
+.finishSummary h2{ margin:4px 4px 2px; }
+.finishSummary #finishMeta{ margin:0 4px 8px; }
+
+.finishSummary__net{ text-align:right !important; }
+.finishSummary td.finishSummary__net{ font-weight:800; }
+.finishSummary td.isPlus{ color: var(--primary); }
+.finishSummary td.isMinus{ color: var(--danger); }
+
+.finishSummary__actions{
+  display:flex;
+  justify-content:center;
+  margin-top:12px;
+}
