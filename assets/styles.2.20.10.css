@@ -617,7 +617,12 @@ h2{
   display:flex;
   align-items:center;
   justify-content:center;
+  line-height:1;
 }
+
+/* Big, easy-to-read numbers (buttons otherwise use the ~13px browser default) */
+#playerCountBtns .segBtn{ font-size:36px; }
+#holeCountBtns .segBtn{ font-size:22px; }
 
 /* =========================================================
    Forms
@@ -891,11 +896,18 @@ h2{
   border:1px solid var(--border);
   background:var(--surface);
   color:var(--text);
-  padding:10px;
+  /* 15px text, same 38px button: line-height + vertical padding add up to 36 */
+  font-size:15px;
+  line-height:16px;
+  padding:10px 8px;
   border-radius:12px;
   font-weight:800;
   cursor:pointer;
   text-align:center;
+}
+/* Very narrow phones: keep "Little Piggies win" on one line */
+@media (max-width:359px){
+  .pill{ font-size:14px; line-height:14px; padding:11px 6px; }
 }
 .pill--active{
   border-color:rgb(var(--primary-rgb) / 0.9);
@@ -923,6 +935,32 @@ h2{
   font-weight:800;
 }
 
+/* Scoreboard totals: a bit larger than the shared table style */
+#scoreTableWrap .table{ font-size:16px; }
+#scoreTableWrap .table th{ font-size:14px; }
+
+/* Won / Lost / Net: right-aligned with even-width digits so numbers line up */
+#scoreTableWrap .table th:not(:first-child),
+#scoreTableWrap .table td:not(:first-child){
+  text-align:right;
+  font-variant-numeric:tabular-nums;
+}
+
+/* Long names truncate with "…" instead of pushing score columns off screen:
+   fixed layout, fixed-width number columns, the name column takes the rest */
+#scoreTableWrap .table,
+.finishSummary .table{ table-layout:fixed; }
+
+#scoreTableWrap .table th:not(:first-child){ width:3.6em; }
+.finishSummary .table th.finishSummary__net{ width:4.5em; }
+
+#scoreTableWrap .table td:first-child,
+.finishSummary .table td:first-child{
+  overflow:hidden;
+  white-space:nowrap;
+  text-overflow:ellipsis;
+}
+
 /* Hole mini grid (scoreboard per-hole deltas) */
 .holeMini{
   margin-top:8px;
@@ -931,8 +969,12 @@ h2{
   gap:6px 10px;
 }
 
+/* Each score sits centered under its player's name */
+.holeMini__name,
+.holeMini__delta{ text-align:center; }
+
 .holeMini__name{
-  font-size:12px;
+  font-size:13px;
   color:var(--muted);
   white-space:nowrap;
   overflow:hidden;
@@ -940,9 +982,12 @@ h2{
 }
 
 .holeMini__delta{
-  font-size:13px;
+  font-size:15px;
   font-weight:800;
 }
+
+/* Hole card result label, e.g. "(Wolf Pack wins)" */
+.holeRow .muted.small{ font-size:14px; }
 
 .holeMini__delta.isPlus{ color: var(--primary); }
 .holeMini__delta.isMinus{ color: var(--danger); }

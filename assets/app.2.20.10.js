@@ -10,6 +10,9 @@
 
   const POINTS_UNIT = 1; // integer scoring only
 
+  // Longest name that still fits a 5-player hole card on a phone
+  const MAX_NAME_LENGTH = 8;
+
   const SCREENS = {
     load: 'screenLoad',
     setup: 'screenSetup',
@@ -582,6 +585,7 @@
       input.value = game?.players?.[i]?.name ?? `Player ${i + 1}`;
       input.dataset.index = String(i);
       input.autocomplete = 'off';
+      input.maxLength = MAX_NAME_LENGTH;
       wrap.appendChild(input);
     }
   }
