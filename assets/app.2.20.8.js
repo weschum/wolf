@@ -1007,6 +1007,7 @@
     const banner = $('updateBanner');
     const btn = $('btnUpdateNow');
     const versionEl = $('appVersion');
+    let updateRequested = false;
 
     function hideUpdateBanner() {
       if (!banner) return;
@@ -1019,10 +1020,16 @@
       banner.classList.remove('hidden');
 
       btn.onclick = async () => {
+        updateRequested = true;
         try {
           const r = reg || await navigator.serviceWorker.getRegistration();
-          if (r?.waiting) r.waiting.postMessage({ type: 'SKIP_WAITING' });
+          if (r?.waiting) {
+            r.waiting.postMessage({ type: 'SKIP_WAITING' });
+            return; // controllerchange will reload
+          }
         } catch {}
+        // Nothing waiting (already activated elsewhere): just load the new version
+        window.location.reload();
       };
     }
 
@@ -1054,16 +1061,17 @@
       }
     });
 
-    // The first SW install claims this page, which also fires controllerchange.
-    // Only reload when an existing controller is replaced (i.e. a real update).
+    // The first SW install claims this page, which also fires controllerchange;
+    // don't reload for that. Do reload when the user tapped Update (even if
+    // iOS reported no controller at launch) or an existing controller is replaced.
     let hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!hadController) {
-        hadController = true;
+      hideUpdateBanner();
+      if (updateRequested || hadController) {
+        window.location.reload();
         return;
       }
-      hideUpdateBanner();
-      window.location.reload();
+      hadController = true;
     });
 
     // ---- Register ----
