@@ -62,13 +62,14 @@ RewriteEngine Off
     Header always set Cache-Control "no-cache"
   </Files>
 
-  # CSS/JS filenames carry the version (app.X.Y.Z.js), so they can be immutable
-  <FilesMatch "\.(css|js)$">
+  # CSS/JS filenames carry the version (app.X.Y.Z.js), so they can be immutable.
+  # service-worker.js is excluded here: the server applies this FilesMatch
+  # after the <Files> block below, so it would override that no-cache rule.
+  <FilesMatch "^(?!service-worker\.js$).*\.(css|js)$">
     Header always set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
 
-  # Service worker must NEVER be cached aggressively.
-  # Must come AFTER the css/js rule above, or that rule overrides it.
+  # Service worker must NEVER be cached aggressively
   <Files "service-worker.js">
     Header always set Cache-Control "no-cache, no-store, must-revalidate"
     Header always set Pragma "no-cache"
