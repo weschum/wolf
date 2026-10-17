@@ -192,6 +192,8 @@
   }
   
   let isEditingSettings = false;
+  // While editing, the hole count is held here until "Save Settings"
+  let pendingHoleCount = null;
 
   function openEditSettings() {
     if (!game) return;
@@ -235,7 +237,7 @@
   function applySettingsFromSetup() {
     // read from setup UI
     const pc = Number(game?.playerCount ?? 4);
-    const hc = Number(game?.holeCount ?? (pc === 4 ? 12 : 15));
+    const hc = Number(pendingHoleCount ?? game?.holeCount ?? (pc === 4 ? 12 : 15));
     const newPlayers = buildPlayersFromInputs();
 
     // Basic validation
@@ -244,10 +246,25 @@
       return false;
     }
 
+    // Shrinking the round drops holes past the new count; warn if any were played
+    const droppedScored = (game.holes ?? [])
+      .map((h, idx) => ({ h, hole: idx + 1 }))
+      .filter(({ h, hole }) => hole > hc && h?.result)
+      .map(({ hole }) => hole);
+
+    if (droppedScored.length) {
+      const ok = confirm(
+        `Changing to ${hc} holes will delete scores for hole${droppedScored.length > 1 ? 's' : ''} ` +
+        `${droppedScored.join(', ')}.\n\nContinue?`
+      );
+      if (!ok) return false;
+    }
+
     // Keep hole objects; adjust length safely
     game.playerCount = pc;
     game.players = newPlayers;
     game.holeCount = hc;
+    pendingHoleCount = null;
 
     game.options = {
       pushTies: !!$('optPushTies')?.checked,
@@ -530,8 +547,12 @@
       btn.dataset.value = String(v);
       btn.textContent = String(v);
       btn.addEventListener('click', () => {
-        game.holeCount = v;
         setSegmentActive(wrap, v);
+        if (isEditingSettings) {
+          pendingHoleCount = v;
+          return;
+        }
+        game.holeCount = v;
         saveGame();
       });
       wrap.appendChild(btn);
@@ -542,7 +563,11 @@
         ? selectedHoleCount
         : (playerCount === 4 ? 12 : 15);
 
-    game.holeCount = pick;
+    if (isEditingSettings) {
+      pendingHoleCount = pick;
+    } else {
+      game.holeCount = pick;
+    }
     setSegmentActive(wrap, pick);
   }
 
@@ -808,31 +833,37 @@
     }
   }
 
+  // Returns false if the user chose to stay on the current hole.
+  // If they chose to discard, the hole is reverted to its baseline.
+  function confirmLeaveCurrentHole() {
+    if (!isCurrentHoleDirty()) return true;
+
+    const discard = confirm(
+      'You have unsaved changes.\n\n' +
+      'Press OK to discard changes and continue.\n' +
+      'Press Cancel to stay and save.'
+    );
+
+    if (!discard) return false;
+
+    // Revert to the state when you entered this hole
+    const h = game.holes[game.currentHoleIndex];
+    if (h?._editBaseline) {
+      const saved = JSON.parse(h._editBaseline);
+      h.partnerId = saved.partnerId;
+      h.loneWolf = saved.loneWolf;
+      h.blind = saved.blind;
+      h.result = saved.result;
+      clearEditBaselineForCurrentHole();
+      saveGame();
+    }
+    return true;
+  }
+
   function goToHole(index) {
     const target = clamp(index, 0, game.holeCount - 1);
 
-    // If dirty, confirm before leaving
-    if (isCurrentHoleDirty()) {
-      const discard = confirm(
-        'You have unsaved changes.\n\n' +
-        'Press OK to discard changes and continue.\n' +
-        'Press Cancel to stay and save.'
-      );
-
-      if (!discard) return;
-
-      // Revert to the state when you entered this hole
-      const h = game.holes[game.currentHoleIndex];
-      if (h?._editBaseline) {
-        const saved = JSON.parse(h._editBaseline);
-        h.partnerId = saved.partnerId;
-        h.loneWolf = saved.loneWolf;
-        h.blind = saved.blind;
-        h.result = saved.result;
-        clearEditBaselineForCurrentHole();
-        saveGame();
-      }
-    }
+    if (!confirmLeaveCurrentHole()) return;
 
     game.currentHoleIndex = target;
     saveGame();
@@ -1359,6 +1390,8 @@
     });
 
     $('btnViewScores')?.addEventListener('click', () => {
+      // Unsaved edits would otherwise be counted in the totals
+      if (!confirmLeaveCurrentHole()) return;
       showScreen(SCREENS.scoreboard);
       renderScoreboard();
     });

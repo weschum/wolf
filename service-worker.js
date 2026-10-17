@@ -38,10 +38,13 @@
 */
 'use strict';
 
-const SW_VERSION = 'v2.20.5';
+const SW_VERSION = 'v2.20.6';
 
 const CACHE_STATIC = `wolf-static-${SW_VERSION}`;
 const CACHE_PAGES  = `wolf-pages-${SW_VERSION}`;
+
+// How long a page load waits for the network before using the cached shell
+const NAV_TIMEOUT_MS = 3000;
 
 // Update this list whenever you bump asset filenames (v2, v3, etc.)
 const PRECACHE_URLS = [
@@ -52,8 +55,8 @@ const PRECACHE_URLS = [
   // DO NOT precache the service worker itself:
   // './service-worker.js',
 
-  './assets/styles.2.20.5.css',
-  './assets/app.2.20.5.js',
+  './assets/styles.2.20.6.css',
+  './assets/app.2.20.6.js',
 
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
@@ -126,18 +129,34 @@ self.addEventListener('fetch', (event) => {
   if (url.pathname.endsWith('/service-worker.js')) return;
 
   // 1) HTML / navigations: network-first for the SPA shell (index.html),
-  //    bypass HTTP cache, fallback to cache
+  //    bypass HTTP cache, fall back to cache. On a weak signal the network
+  //    can stall for a long time, so give up after NAV_TIMEOUT_MS and serve
+  //    the cached shell while the fetch keeps refreshing the cache.
   if (isNavigationRequest(req)) {
     event.respondWith((async () => {
-      try {
-        const fresh = await fetch('./index.html', { cache: 'reload' });
-        const cache = await caches.open(CACHE_PAGES);
-        await cache.put('./index.html', fresh.clone());
-        return fresh;
-      } catch {
-        const cached = await caches.match('./index.html');
-        return cached || caches.match('./');
-      }
+      const cached = await caches.match('./index.html') || await caches.match('./');
+
+      const network = (async () => {
+        try {
+          const fresh = await fetch('./index.html', { cache: 'reload' });
+          // Never overwrite the good shell with an error page
+          if (fresh.ok) {
+            const cache = await caches.open(CACHE_PAGES);
+            await cache.put('./index.html', fresh.clone());
+            return fresh;
+          }
+          return cached ? null : fresh;
+        } catch {
+          return null;
+        }
+      })();
+
+      // Nothing cached yet: all we can do is wait for the network
+      if (!cached) return (await network) || Response.error();
+
+      event.waitUntil(network);
+      const timeout = new Promise(resolve => setTimeout(() => resolve(null), NAV_TIMEOUT_MS));
+      return (await Promise.race([network, timeout])) || cached;
     })());
     return;
   }
@@ -150,8 +169,10 @@ self.addEventListener('fetch', (event) => {
       const fetchAndUpdate = (async () => {
         try {
           const fresh = await fetch(req);
-          const cache = await caches.open(CACHE_STATIC);
-          await cache.put(req, fresh.clone());
+          if (fresh.ok) {
+            const cache = await caches.open(CACHE_STATIC);
+            await cache.put(req, fresh.clone());
+          }
           return fresh;
         } catch {
           return null;
