@@ -6,7 +6,7 @@
   <title>Wolf Disc Golf Scoring</title>
 
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="stylesheet" href="./assets/styles.2.20.10.css" />
+  <link rel="stylesheet" href="./assets/styles.2.21.0.css" />
 
   <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png" />
   
@@ -160,7 +160,16 @@
           </div>
 
           <div id="playerInputs" class="stack"></div>
-          <div class="hint">Order matters. Wolf is the last player each hole; order rotates every hole.</div>
+
+          <div class="row row--between row--center wolfPositionRow">
+            <span class="wolfPositionRow__label">Wolf tees</span>
+            <div id="wolfPositionBtns" class="segmented" role="group" aria-label="Wolf tees first or last">
+              <button type="button" class="segBtn" data-value="first">First</button>
+              <button type="button" class="segBtn" data-value="last">Last</button>
+            </div>
+          </div>
+
+          <div id="orderHint" class="hint">Order matters. Wolf is the last player each hole; order rotates every hole.</div>
         </div>
 
         <div class="card card--inset">
@@ -285,8 +294,10 @@
         <div class="rules">
           <ul>
             <li><b>Players:</b> 4 or 5</li>
-            <li><b>Order:</b> Fixed order rotates each hole. The last player in the order is the <b>Wolf</b></li>
-            <li><b>Wolf Partner:</b> After each player tees, Wolf must choose to take them as partner or pass. When the next player tees, the previous player cannot be selected. If the Wolf has not chosen a partner before their turn to throw, they must decide to choose the last player to tee before them, or declare "Lone Wolf" before they throw.</li>
+            <li><b>Order:</b> Fixed order rotates each hole. At setup, choose whether the <b>Wolf</b> is the <b>first</b> or the <b>last</b> player in the order; that holds for the whole game.
+              <b>Wolf last:</b> the first player moves to second, then third, and so on.
+              <b>Wolf first:</b> the first player moves to last, then second to last, and so on.</li>
+            <li><b>Wolf Partner:</b> After each player tees, Wolf must choose to take them as partner or pass. When the next player tees, the previous player cannot be selected. When the Wolf tees last and has not chosen a partner before their turn to throw, they must decide to choose the last player to tee before them, or declare "Lone Wolf" before they throw.</li>
             <li><b>Wolf Pack:</b> The Wolf and their partner are a team. The Wolf is the leader of the pack.</li>
             <li><b>Little Piggies:</b> All the players who are not the Wolf or their partner are "Little Piggies".</li>
             <li><b>Scoring:</b> At the end of each hole, each member of the losing team gives 1 point to each member of the winning team. example: in a 5-player game, if the Wolf and their partner lose, each of the 3 Little Piggies wins 2 points and each of the 2 Wolf Pack members loses 3 points.</li>
@@ -325,6 +336,6 @@
 
   <div id="menuOverlay" class="menuOverlay hidden"></div>
 
-  <script defer src="./assets/app.2.20.10.js"></script>
+  <script defer src="./assets/app.2.21.0.js"></script>
 </body>
 </html>

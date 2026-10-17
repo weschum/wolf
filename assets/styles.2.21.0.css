@@ -674,6 +674,12 @@ h2{
 
 .setupPlayersHeader{ margin-bottom:10px; }
 
+/* Wolf tees First / Last (Players card) */
+.wolfPositionRow{ margin-top:12px; }
+.wolfPositionRow__label{ font-weight:800; }
+#wolfPositionBtns{ flex:0 0 auto; width:180px; }
+#wolfPositionBtns .segBtn{ font-size:16px; padding:10px 8px; }
+
 /* Footer spacing so buttons don't crowd the Options card */
 .setupFooter{ margin:8px 0 4px; }
 .gameFooter{ margin:8px 0 4px; }

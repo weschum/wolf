@@ -170,7 +170,7 @@
         { id: 'p4', name: 'Player 4' },
       ],
       holeCount: 12,
-      options: { pushTies: false, blindWolf: false },
+      options: { pushTies: false, blindWolf: false, wolfPosition: 'last' },
       holes: [],
       currentHoleIndex: 0,
       finishedAt: null,
@@ -227,14 +227,32 @@
     // Optional: change button label so it's clear
     if ($('btnStartGame')) $('btnStartGame').textContent = 'Save Settings';
 
-    // Disable player count buttons while editing
-    const pcb = $('playerCountBtns');
-    if (pcb) {
-      qsa('.segBtn', pcb).forEach(btn => {
-        btn.disabled = true;
-        btn.classList.add('segBtn--disabled');
+    // Player count and Wolf First/Last can't change once a game has started
+    setGameShapeLocked(true);
+  }
+
+  // Player count and Wolf First/Last decide who is Wolf on every hole,
+  // so they are locked while editing a game in progress.
+  function setGameShapeLocked(locked) {
+    ['playerCountBtns', 'wolfPositionBtns'].forEach(id => {
+      const wrap = $(id);
+      if (!wrap) return;
+      qsa('.segBtn', wrap).forEach(btn => {
+        btn.disabled = locked;
+        btn.classList.toggle('segBtn--disabled', locked);
       });
-    }
+    });
+  }
+
+  function selectedWolfPosition() {
+    return qs('#wolfPositionBtns .segBtn--active')?.dataset.value === 'first' ? 'first' : 'last';
+  }
+
+  function renderWolfPosition(position) {
+    const pos = position === 'first' ? 'first' : 'last';
+    setSegmentActive($('wolfPositionBtns'), pos);
+    const hint = $('orderHint');
+    if (hint) hint.textContent = `Order matters. Wolf is the ${pos} player each hole; order rotates every hole.`;
   }
 
   function applySettingsFromSetup() {
@@ -268,6 +286,8 @@
     game.options = {
       pushTies: !!$('optPushTies')?.checked,
       blindWolf: !!$('optBlindWolf')?.checked,
+      // Locked while editing: keep what the game started with
+      wolfPosition: isWolfFirst(game) ? 'first' : 'last',
     };
 
     ensureHolesLength();
@@ -303,14 +323,39 @@
   // -----------------------------
   // Rotation / Order helpers
   // -----------------------------
-  function rotatedOrderForHole(holeIndex) {
-    const n = game.players.length;
-    const offset = holeIndex % n;
-    const base = game.players.map(p => p.id);
+  // Chosen at setup for the whole game. Games saved before this option existed
+  // have no wolfPosition and keep the original behavior (Wolf last).
+  function isWolfFirst(g) {
+    return g?.options?.wolfPosition === 'first';
+  }
 
-    // Right-rotation: last becomes first each hole
+  // Tee order (player ids) for a hole.
+  //  - Wolf last:  right-rotation, last becomes first each hole
+  //                (first player moves to second, then third, ...)
+  //  - Wolf first: left-rotation, first becomes last each hole
+  //                (first player moves to last, then second to last, ...)
+  function teeOrderForHole(g, holeIndex) {
+    const base = g.players.map(p => p.id);
+    const n = base.length;
+    const offset = holeIndex % n;
+
+    if (isWolfFirst(g)) {
+      return base.slice(offset).concat(base.slice(0, offset));
+    }
+
     const cut = (n - offset) % n;
     return base.slice(cut).concat(base.slice(0, cut));
+  }
+
+  // { order, wolfId, others } where others are the non-Wolf players in tee order
+  function holeRoles(g, holeIndex) {
+    const order = teeOrderForHole(g, holeIndex);
+    const wolfFirst = isWolfFirst(g);
+    return {
+      order,
+      wolfId: wolfFirst ? order[0] : order[order.length - 1],
+      others: wolfFirst ? order.slice(1) : order.slice(0, -1),
+    };
   }
 
   function idToName(id) {
@@ -341,17 +386,7 @@
 
     for (let i = 0; i < g.holeCount; i++) {
       const h = g.holes[i] ?? {};
-      const n = g.players.length;
-
-      const order = (function () {
-        const offset = i % n;
-        const base = g.players.map(p => p.id);
-        const cut = (n - offset) % n;
-        return base.slice(cut).concat(base.slice(0, cut));
-      })();
-
-      const wolfId = order[order.length - 1];
-      const others = order.slice(0, -1);
+      const { order, wolfId, others } = holeRoles(g, i);
 
       const isBlind = !!(g.options?.blindWolf && h.blind);
       // Base is always 1; Blind Wolf adds +1 for THIS hole only
@@ -642,8 +677,7 @@
 
     $('holeTitle').textContent = `Hole ${holeNum} of ${game.holeCount}`;
 
-    const order = rotatedOrderForHole(i);
-    const wolfId = order[order.length - 1];
+    const { order, wolfId, others } = holeRoles(game, i);
 
     // ----- Bottom footer updates -----
     if ($('holeTitleBottom')) {
@@ -714,7 +748,7 @@
     const pb = $('partnerButtons');
     if (pb) {
       pb.innerHTML = '';
-      order.slice(0, -1).forEach(pid => {
+      others.forEach(pid => {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'pill';
@@ -1226,12 +1260,20 @@
     });
   }
 
+  // Bound once from bindUI. Only a visual choice until Start Game reads it.
+  function bindWolfPositionButtons() {
+    qsa('#wolfPositionBtns .segBtn').forEach(btn => {
+      btn.addEventListener('click', () => renderWolfPosition(btn.dataset.value));
+    });
+  }
+
   function initSetupUI() {
     if (!game) game = newGameTemplate();
 
     setSegmentActive($('playerCountBtns'), game.playerCount);
     renderHoleOptionsButtons(game.playerCount, game.holeCount);
     renderPlayerInputs();
+    renderWolfPosition(game.options?.wolfPosition);
   }
 
   // Undo everything openEditSettings() changes on the setup screen
@@ -1242,17 +1284,12 @@
     $('btnRandomize')?.classList.remove('hidden');
     if ($('btnStartGame')) $('btnStartGame').textContent = 'Start Game';
 
-    const pcb = $('playerCountBtns');
-    if (pcb) {
-      qsa('.segBtn', pcb).forEach(btn => {
-        btn.disabled = false;
-        btn.classList.remove('segBtn--disabled');
-      });
-    }
+    setGameShapeLocked(false);
   }
 
   function bindUI() {
     bindPlayerCountButtons();
+    bindWolfPositionButtons();
 
     $('btnRules')?.addEventListener('click', () => $('rulesDialog')?.showModal());
     $('btnCloseRules')?.addEventListener('click', () => $('rulesDialog')?.close());
@@ -1350,6 +1387,7 @@
       game.options = {
         pushTies: !!$('optPushTies')?.checked,
         blindWolf: !!$('optBlindWolf')?.checked,
+        wolfPosition: selectedWolfPosition(),
       };
 
       game.holes = [];
@@ -1378,8 +1416,7 @@
 
     $('btnSaveHole')?.addEventListener('click', () => {
       const h = game.holes[game.currentHoleIndex];
-      const order = rotatedOrderForHole(game.currentHoleIndex);
-      const wolfId = order[order.length - 1];
+      const { wolfId } = holeRoles(game, game.currentHoleIndex);
 
       // Enforce rule again at save-time
       if (h.blind) {
