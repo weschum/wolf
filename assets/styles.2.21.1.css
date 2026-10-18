@@ -1062,6 +1062,34 @@ h2{
 .rules *{ color: var(--text); }
 
 /* =========================================================
+   Modal (Unsaved hole changes: Back / Cancel / Save)
+   ========================================================= */
+
+/* Message text only, so the buttons keep their own colors */
+.unsavedChanges__title,
+.unsavedChanges__list,
+.unsavedChanges__list *{ color: var(--text); }
+
+.unsavedChanges__title{
+  margin:4px 4px 8px;
+  font-size:17px;
+  font-weight:800;
+}
+
+.unsavedChanges__list{
+  margin:0 0 14px;
+  padding-left:22px;
+  line-height:1.4;
+  font-size:15px;
+}
+
+.unsavedChanges__actions{
+  display:grid;
+  grid-template-columns:repeat(3, minmax(0, 1fr));
+  gap:8px;
+}
+
+/* =========================================================
    Modal (Finish Game summary)
    ========================================================= */
 

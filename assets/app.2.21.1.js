@@ -886,37 +886,124 @@
     }
   }
 
-  // Returns false if the user chose to stay on the current hole.
-  // If they chose to discard, the hole is reverted to its baseline.
-  function confirmLeaveCurrentHole() {
-    if (!isCurrentHoleDirty()) return true;
-
-    const discard = confirm(
-      'You have unsaved changes.\n\n' +
-      'Press OK to discard changes and continue.\n' +
-      'Press Cancel to stay and save.'
-    );
-
-    if (!discard) return false;
-
-    // Revert to the state when you entered this hole
+  // Revert the current hole to the state it had when editing started
+  function discardCurrentHoleChanges() {
     const h = game.holes[game.currentHoleIndex];
-    if (h?._editBaseline) {
-      const saved = JSON.parse(h._editBaseline);
-      h.partnerId = saved.partnerId;
-      h.loneWolf = saved.loneWolf;
-      h.blind = saved.blind;
-      h.result = saved.result;
-      clearEditBaselineForCurrentHole();
-      saveGame();
+    if (!h?._editBaseline) return;
+
+    const saved = JSON.parse(h._editBaseline);
+    h.partnerId = saved.partnerId;
+    h.loneWolf = saved.loneWolf;
+    h.blind = saved.blind;
+    h.result = saved.result;
+    clearEditBaselineForCurrentHole();
+    saveGame();
+  }
+
+  // Validates and saves the current hole. Alerts and returns false if the
+  // hole isn't complete (no result, or no partner on a team hole).
+  function saveCurrentHole() {
+    const h = game.holes[game.currentHoleIndex];
+    const { wolfId } = holeRoles(game, game.currentHoleIndex);
+
+    // Enforce rule again at save-time
+    if (h.blind) {
+      h.loneWolf = true;
+      h.partnerId = null;
     }
+
+    if (!h.result) {
+      alert('Select a result (Wolf Pack / Little Piggies / Tie).');
+      return false;
+    }
+
+    const isTie = h.result === 'TIE';
+    if (!isTie) {
+      if (!h.loneWolf) {
+        if (!h.partnerId) {
+          alert('Choose a Wolf partner, or select Lone Wolf.');
+          return false;
+        }
+        if (h.partnerId === wolfId) {
+          alert('Partner cannot be the Wolf.');
+          return false;
+        }
+      }
+    }
+
+    // Lock snapshot so future edits show dirty (set before saving so it persists)
+    h._savedSnapshot = holeSnapshot(h);
+    clearEditBaselineForCurrentHole();
+    saveGame();
+    refreshDirtyState();
     return true;
   }
 
-  function goToHole(index) {
-    const target = clamp(index, 0, game.holeCount - 1);
+  // Shows the Back / Cancel / Save dialog. Resolves 'back', 'discard' or 'save'.
+  // `destination` finishes the sentence "save changes and ...".
+  function askUnsavedChanges(destination) {
+    const dlg = $('unsavedDialog');
+    if (!dlg?.showModal) {
+      // Very old browsers without <dialog>: fall back to the two-button prompt
+      return Promise.resolve(confirm(
+        'You have unsaved changes to this hole.\n\n' +
+        'Press OK to clear changes.\nPress Cancel to keep editing.'
+      ) ? 'discard' : 'back');
+    }
 
-    if (!confirmLeaveCurrentHole()) return;
+    const saveLine = $('unsavedSaveLine');
+    if (saveLine) saveLine.textContent = `save changes and ${destination}`;
+
+    // Resolve from the button click itself rather than the dialog's 'close'
+    // event, which isn't reliably delivered in every browser.
+    // Escape (or the dialog closing any other way) counts as Back.
+    return new Promise(resolve => {
+      let done = false;
+      const finish = (choice) => {
+        if (done) return;
+        done = true;
+        dlg.removeEventListener('click', onClick);
+        dlg.removeEventListener('cancel', onCancel);
+        dlg.removeEventListener('close', onClose);
+        if (dlg.open) dlg.close();
+        resolve(choice);
+      };
+      const onClick = (e) => {
+        const btn = e.target.closest('button[value]');
+        if (btn) finish(btn.value);
+      };
+      const onCancel = (e) => { e.preventDefault(); finish('back'); };
+      const onClose = () => finish('back');
+
+      dlg.addEventListener('click', onClick);
+      dlg.addEventListener('cancel', onCancel);
+      dlg.addEventListener('close', onClose);
+      dlg.showModal();
+    });
+  }
+
+  // Resolves true when it's OK to leave the current hole.
+  async function resolveUnsavedChanges(destination) {
+    if (!isCurrentHoleDirty()) return true;
+
+    const choice = await askUnsavedChanges(destination);
+    if (choice === 'save') return saveCurrentHole();
+    if (choice === 'discard') {
+      // Clear the edits but stay on this hole
+      discardCurrentHoleChanges();
+      renderGameScreen();
+    }
+    return false; // back or discard: stay on the hole
+  }
+
+  async function goToHole(index) {
+    const target = clamp(index, 0, game.holeCount - 1);
+    const from = game.currentHoleIndex;
+    const destination = target > from ? 'advance to next hole'
+      : target < from ? 'go to previous hole'
+      : 'continue';
+
+    if (!(await resolveUnsavedChanges(destination))) return;
 
     game.currentHoleIndex = target;
     saveGame();
@@ -1415,49 +1502,15 @@
     $('btnNextHoleBottom')?.addEventListener('click', () => goToHole(game.currentHoleIndex + 1));
 
     $('btnSaveHole')?.addEventListener('click', () => {
-      const h = game.holes[game.currentHoleIndex];
-      const { wolfId } = holeRoles(game, game.currentHoleIndex);
-
-      // Enforce rule again at save-time
-      if (h.blind) {
-        h.loneWolf = true;
-        h.partnerId = null;
-      }
-
-      if (!h.result) {
-        alert('Select a result (Wolf Pack / Little Piggies / Tie).');
-        return;
-      }
-
-      const isTie = h.result === 'TIE';
-      if (!isTie) {
-        if (!h.loneWolf) {
-          if (!h.partnerId) {
-            alert('Choose a Wolf partner, or select Lone Wolf.');
-            return;
-          }
-          if (h.partnerId === wolfId) {
-            alert('Partner cannot be the Wolf.');
-            return;
-          }
-        }
-      }
-
-      saveGame();
-
-      // Lock snapshot so future edits show dirty
-      h._savedSnapshot = holeSnapshot(h);
-      clearEditBaselineForCurrentHole();
-      refreshDirtyState();
+      if (!saveCurrentHole()) return;
 
       // Stay on this hole; Next is handled by the Next button(s)
       renderGameScreen();
-
     });
 
-    $('btnViewScores')?.addEventListener('click', () => {
+    $('btnViewScores')?.addEventListener('click', async () => {
       // Unsaved edits would otherwise be counted in the totals
-      if (!confirmLeaveCurrentHole()) return;
+      if (!(await resolveUnsavedChanges('open the scoreboard'))) return;
       showScreen(SCREENS.scoreboard);
       renderScoreboard();
     });
